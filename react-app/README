@@ -1,0 +1,4 @@
+The ./node_modules folder is ignored in this folder.
+
+You will need to run Node Package Manager's install to run through our package.json install file:
+$ npm install
