@@ -3,7 +3,7 @@
 
 Vagrant.configure("2") do |config|
 
-    config.vm.box = "http://files.bistorm.us/sandy.box"
+    config.vm.box = "http://files.bistorm.us/sandy/sandy.box"
     config.vm.network "private_network", ip: "192.168.33.10"
     config.vm.network "forwarded_port", guest: 9081, host:81, auto_correct: false
     config.vm.network "forwarded_port", guest: 9082, host:82, auto_correct: false
