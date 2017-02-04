@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/BiStormLLC/samples.git"
+    "url": "https://github.com/BiStormLLC/sandy.git"
   },
   "engines": {
     "node": "5",
@@ -32,9 +32,9 @@
   "author": "Jonathan McQuade <jonathan@bistorm.associates> (http://blog.bistorm.org)",
   "license": "GNU GPLv3",
   "bugs": {
-    "url": "https://github.com/BiStormLLC/samples/issues"
+    "url": "https://github.com/BiStormLLC/sandy/issues"
   },
-  "homepage": "https://github.com/BiStormLLC/samples/tree/master/sandy",
+  "homepage": "https://github.com/BiStormLLC/sandy",
   "dependencies": {
     "react": "^15.4.0",
     "react-dom": "^15.4.0"

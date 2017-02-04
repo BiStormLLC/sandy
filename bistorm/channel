@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# Description: Channel streamer for SLUG SiliconDust extension
+#
+echo "Sandy: I received a request to stream channel $1 ... "
+ip=`cat /vagrant/bistorm/prime_ip`
+echo "According to /vagrant/bistorm/vars, your SiliconDust device IP is ... $ip"
+
+count=`ps aux | grep -v "grep" | grep -c ffmpeg`
+# New stream, yay!  For performance, only serve if there is no existing conversions 
+if [ $count -lt 1 ]; then
+    ffmpeg -i "http://$ip:5004/auto/v$1" -s 960x540 -vcodec libx264 -crf 2c -preset ultrafast -maxrate 2500k -bufsize 2500k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost:1981/c/$1"
+else
+    exit 0
+fi

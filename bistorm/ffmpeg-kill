@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# Description: Checks for existing client access 
+#  and kills ffmpeg if no activity.  Run through CRON
+#
+echo "Sandy: My daemon script ffmpeg-kill is running."
+sudo killall ffmpeg
+[ -d /tmp/hlsc ] && sudo rm -r /tmp/hlsc/*
+[ -d /tmp/hlsd ] && sudo rm -r /tmp/hlsd/*
+echo "Sandy: I am no longer streaming an HLS feed."
+
+#Free up memory
+sudo sysctl -w vm.drop_caches=3 

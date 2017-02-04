@@ -1,0 +1,4 @@
+# Exclude everything in this directory
+./*
+
+!./landscape-1485795480-gettyimages-51417809.jpg

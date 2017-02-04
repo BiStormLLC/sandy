@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# Description: storm is initiated after Sandy has booted.
+#   It is a testbed for incorporating new libraries and technologies.
+#   This is primarily so that our devs don't write 'test code' in prod files.
+#
+
+# Get the HDHomeRunPrime IP address and set it in the prime_ip file
+hdhomerun_config discover | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > /vagrant/bistorm/prime_ip
+
+# Initiate MediaTomb UPnP server
+sudo mediatomb -e eth1 -p 55555 -m /vagrant/media/ -c /etc/mediatomb/config.xml -d
+
+# Anything below this line is ignored
+exit
+
+
+#################################
+Sandbox
+#################################
+
+while [ true ]
+    do 
+    # Determine if nginx is currently responding to a request
+    if [ $(netstat -an | grep :9081 | grep ESTABLISHED | wc -l) -ne 0 ]; then
+
+        # Only serve if no other conversions 
+        if [ -z "$(pgrep ffmpeg)" ]; then
+            #OK to stream, yay! 
+            #echo "Sandy: 
+            #ffmpeg -d -i http://192.168.1.119:5004/auto/v513 -vcodec libx264 -s 720:480 -r 60 -acodec aac -strict -2 -crf 18 -preset veryfast -maxrate 5000k -bufsize 9000k -g 120 -profile:v baseline -f flv rtmp://localhost:1981/show/stream 2> /vagrant/ffmpeg-log.txt
+        fi        
+    fi
+done
+
+
+
+
+
+    
+
