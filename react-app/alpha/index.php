@@ -61,7 +61,7 @@
                 <div id="stream" width="100%" height="auto">				
                     <!-- for live streaming source -->
                     <video width="100%" height="95%" controls>
-                        <src="http://<?php print $localIP ?>:8081/<?php print getChannel()?>.m3u8" type="application/x-mpegurl">
+                        <src="http://<?php print $localIP ?>:9081/<?php print getChannel()?>.m3u8" type="application/x-mpegurl">
                     </video> 
                 </div>
             </div>
@@ -82,7 +82,7 @@
                 playlist: [{
                         sources: [
                             {
-                                file: "http://<?php print $localIP ?>:8081/<?php print getChannel()?>.m3u8",
+                                file: "http://<?php print $localIP ?>:9081/<?php print getChannel()?>.m3u8",
                             },
                             {
                                 file: "rtmp://<?php print $localIP ?>:1981/c/<?php print getChannel()?>",

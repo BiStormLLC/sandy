@@ -21,15 +21,16 @@ Vagrant.configure("2") do |config|
     #   https://friendsofvagrant.github.io/v1/docs/bridged_networking.html
     #
 
-    config.vm.network :public_network, :public_network => "eth1"
-    config.vm.network :public_network, :public_network => "wlan0"
-    config.vm.network :public_network, :bridge => 'em1', :use_dhcp_assigned_default_route => false
-    config.vm.network :private_network, ip: "192.168.33.10"
+    config.vm.network :private_network, ip: "192.168.33.10", 
+        auto_config: false
+    config.vm.network :public_network, :public_network => "eth2", use_dhcp_assigned_default_route: true
+    config.vm.network :public_network, :public_network => "wlan0", use_dhcp_assigned_default_route: true
+    config.vm.network :public_network, :bridge => 'em1', use_dhcp_assigned_default_route: true
+
     config.vm.network "forwarded_port", guest: 9080, host:9084, auto_correct: false
     config.vm.network "forwarded_port", guest: 9081, host:8081, auto_correct: false
     config.vm.network "forwarded_port", guest: 9082, host:8082, auto_correct: false
     config.vm.network "forwarded_port", guest: 9083, host:8083, auto_correct: false
-
 #
 #   GUEST CUSTOMIZATIONS
 #
@@ -41,8 +42,6 @@ Vagrant.configure("2") do |config|
       v.customize ["modifyvm", :id, "--cpuexecutioncap", "80"]
     end
 
-
- 
 #    
 #   PROBS ? 'Uh ... yeah?' : 'Try changing to the NFS file version and tweet @babelfeed if you still need help!'
 #
