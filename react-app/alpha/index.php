@@ -91,7 +91,6 @@
                     }],
                 width: "100%",
                 aspectratio: "16:9",
-                primary: "flash",
                 hlslabels: {
                     "2500": "High",
                     "1000": "Medium"
