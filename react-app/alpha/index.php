@@ -73,7 +73,7 @@
                 </div>
             </footer>
         </div>
-
+vagr
         <!-- The script below is for when we are live streaming -->
         <script>
             var playerInstance = jwplayer("stream");
@@ -98,7 +98,7 @@
             });
         </script>
 
-        <a href="http://<?php print $localIP ?>:9082/action/stop" style="font-size:1.8em" target="_blank">Ask Sandy to kill the feed.</a>
+        <a href="http://<?php print $localIP ?>:9082/action/stop" style="font-size:1.8em" target="_blank">Ask Sandy to kill the feed</a>
         
         <!-- Google Analytics -->
         <script>

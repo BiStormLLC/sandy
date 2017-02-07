@@ -3,11 +3,44 @@
 # Description: Checks for existing client access 
 #  and kills ffmpeg if no activity.  Run through CRON
 #
-echo "Sandy: My daemon script ffmpeg-kill is running."
+warning=0
+echo "Sandy: My daemon script ffmpeg-kill is running ..."
+if [ $# -eq 0 ]
+  then
+    echo "Sandy: Please pass me directories to cleanse, like: 'ffmpeg-kill /var/www/public/hlsc /var/www/public/hlsd'"
+    echo "Sandy: Pass carefully or I might just delete your project files. #JustKiddingILoveYou"
+    echo "Sandy: But at least I won't undo your windows. #StillNotYourMaid"
+    echo "Exit er 1"
+    exit 1
+fi
 sudo killall ffmpeg
-[ -d /tmp/hlsc ] && sudo rm -r /tmp/hlsc/*
-[ -d /tmp/hlsd ] && sudo rm -r /tmp/hlsd/*
-echo "Sandy: I am no longer streaming an HLS feed."
+count=`ps aux | grep -v "grep" | grep -c ffmpeg`
+# ffmpeg daemon has 3 PIDs at all times.
+if [ "${count}" -le 3 ]; then
+    echo "Sandy: I wasn't actually streaming. #JustSoYouKnow"
+    warning=1
+else
+    sudo killall ffmpeg
+    echo "Sandy: My ffmpeg processes have been halted."
+fi
+
+#Iterate through all directories passed in
+for var in "$@"
+
+do
+    [ ! -d $var ] && echo "Sandy: $var ? That's no directory, buster." && warning=1 && break
+    echo "Sandy: I'm emptying the streaming contents for $var ... "
+    [ -d $var ] && sudo rm -r $var/*.ts
+    [ -d $var ] && sudo rm -r $var/*.m3u8
+    [ -d $var ] && sudo rm -r $var/*.mp4 
+done
+
+if [ "${warning}" -eq 0 ]; then
+    echo "Sandy: I am no longer streaming an HLS feed."
+    echo "Sandy: ... she's dead, Jim."
+fi
+
+echo "Sandy: Done and done!"
 
 #Free up memory
-sudo sysctl -w vm.drop_caches=3 
+sudo sysctl -w vm.drop_caches=3 > /dev/null

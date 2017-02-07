@@ -110,9 +110,16 @@
 #   relationship between the host (your machine) and the guest, Sandy, we have 
 #   diagrammed these using the physical IP address that VirtualBox established.
 #
-#   #Q : WHAT IS SANDY'S IP ADDRESS?
+#   #Q : WHAT IS SANDY'S localhost IP ADDRESS?
+#   #A : Sandy establishes a virtual private network with your host machine.
+#        This virtual IP address is not accessible to the rest of your network.
+#        This is for 'hardening' your staging projects using this server.
+#        You can disable the network hardware on eth1 and above and still be
+#        able to access your Sandy server from http://192.168.33.10
+#
+#   #Q : WHAT IS SANDY'S LAN IP ADDRESS?
 #   #A : Your router determines this.  There are many ways to find it, but
-#       the easiest way is to run 'vagrant ssh' to connect into your Sandy server,
+#        the easiest way is to run 'vagrant ssh' to connect into your Sandy server,
 #        then run 'ifconfig -a'.  Sandy will show you her virtual networking hardware,
 #        which is actually your hosts's hardware. Typically, your 'eth0' adapter
 #        will display an inet addr for your router and 'eth1' or 'wlan0' items
@@ -127,15 +134,15 @@
 #
 #   --> EXAMPLES of round-trip routing: 
 # From your host machine
-# 1.  http://localhost:8080 -> Vagrant port forwarding to http://192.168.1.123:80 -> local.rc port 
-#       forwarding to http://192.168.10.33:9080, Apache listener responds with vCumulus UX.
+# 1.  http://localhost:9084/c/13 -> Vagrant port forwarding to http://192.168.1.123:9080/c/13, 
+        Apache listener responds with vCumulus UX (/var/www/public/ux).
 # 2.  http://localhost:8083 -> Vagrant port forwarding to http://192.168.1.123:9083, MongoDB 
-#       listener responds
+#       listener responds (#TODO)
 #
 # From sandy.bistorm.local (with modified hosts file)
 # 1.  http://sandy.bistorm.local -> local.rc port forwarding to http://192.168.10.33:9080,
 #       Apache listener responds with vCumulux UX
-# 2.  http://sandy.bistorm.local:81 -> local.rc port forwarding to http://192.168.10.33:9081,
+# 2.  http://sandy.bistorm.local:81/13.m3u8 -> local.rc port forwarding to http://192.168.10.33:9081/13.m3u8,
 #       Nginx listener responds
 ##
 
@@ -146,9 +153,29 @@
 #
 # HLS
 # https://docs.peer5.com/guides/setting-up-hls-live-streaming-server-using-nginx/
+# 
+# EPG (#TODO)
+# https://github.com/SchedulesDirect/JSON-Service/wiki/API-20141201
+#
+# Server Provisioning
+# https://scotch.io/tutorials/how-to-create-a-vagrant-base-box-from-an-existing-one
+# https://www.vagrantup.com/docs/networking/public_network.html
+#
+# HDHomeRun Development
+# https://www.silicondust.com/hdhomerun/hdhomerun_development.pdf
+# 
+# FFmpeg Streaming Settings Guide
+# https://trac.ffmpeg.org/wiki/EncodingForStreamingSites
+#
+# Writing scripts for Sandy in shell
+# https://techarena51.com/index.php/inotify-tools-example/
+# http://www.tldp.org/HOWTO/Bash-Prog-Intro-HOWTO-6.html
+# 
+# Troubleshooting
+# http://stackoverflow.com/questions/22717428/vagrant-error-failed-to-mount-folders-in-linux-guest
+# https://dmsimard.com/2014/05/02/no-network-on-ubuntu-14-04-cloud-image-with-cloud-init/
 #
 ##
-
 
 ##
 #
@@ -158,3 +185,10 @@
 
 0.3.0
     -All the things (first official code release)
+0.3.3
+    -First public release of bistorm/sandy server on HashiCorp Atlas cloud
+    -https://atlas.hashicorp.com/vagrant
+0.3.4
+    -Some additional server provisioning to resolve networking hardware hangs
+    -Better mobile support in vCumulus UX
+    -Better support of killing ffmpeg streams through bistorm/ffmpeg-kill
