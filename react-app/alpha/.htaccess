@@ -351,8 +351,10 @@ AddDefaultCharset utf-8
     # RewriteBase /
 
     # (5)
+    # ProjectSand vCumulux UX
     # RewriteOptions <options>
     RewriteRule ^c/([^\.]+)$ index.php [NC,L]
+    RewriteRule ^d/([^\.]+)$ index.php [NC,L]
 
 
 </IfModule>

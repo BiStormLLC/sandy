@@ -13,9 +13,22 @@
     /*******
      * Page Vars (currently global)
      */
+    // Activate channel if this is a /c/ stream
     $localIP = $_SERVER['SERVER_ADDR'];
     $localPort = $_SERVER['SERVER_PORT'];
-    $channel_url = "http://" . $localIP . ":9082/c/" . getChannel();
+    $channel_url = "";
+    $app_stream = "";
+    $hls_dir = "";
+    if (strpos($_SERVER['REQUEST_URI'], '/c/') !== false) {
+        $channel_url = "http://" . $localIP . ":9082/c/" . getChannel();
+        $app_stream = "tv";
+        $hls_dir = "c";   
+    } else {
+        $channel_url = "http://" . $localIP . ":9082/d/" . getChannel();
+        $app_stream = "stream";
+        $hls_dir = "d"; 
+    }
+    
 ?>
 
 <!doctype html>
@@ -35,15 +48,24 @@
         <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
         
         <script>
+            <!--
             // TODO: This is a fix to get the channel activated.  
             // Will improve upon it soon.
-            jQuery.ajax({
-                'url': '<?php print $channel_url ?>',
-                'complete': function(xhr, status){},
-                'error': function(xhr, status, e){
-                    if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG.");
+            
+            var app_stream = "<?php echo $app_stream ?>";
+ 
+            $(document).ready(function () {
+                if(app_stream == 'tv') {
+                    jQuery.ajax({
+                        'url': '<?php print $channel_url ?>',
+                        'complete': function(xhr, status){},
+                        'error': function(xhr, status, e){
+                            if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG.");
+                        }
+                    });
                 }
             });
+           -->
         </script>
     </head>
 
@@ -61,7 +83,7 @@
                 <div id="stream" width="100%" height="auto">				
                     <!-- for live streaming source -->
                     <video width="100%" height="95%" controls>
-                        <src="http://<?php print $localIP ?>:9081/<?php print getChannel()?>.m3u8" type="application/x-mpegurl">
+                        <src="http://<?php print $localIP ?>:9081/<?php print $hls_dir ?>/<?php print getChannel()?>" type="application/x-mpegurl">
                     </video> 
                 </div>
             </div>
@@ -69,11 +91,11 @@
         <div class="footer-container">
             <footer class="wrapper">
                 <div class="info">
-
+                            <a href="http://<?php print $localIP ?>:9082/action/stop" style="font-size:1.8em" target="_blank">Ask Sandy to kill the feed</a>
                 </div>
             </footer>
         </div>
-vagr
+
         <!-- The script below is for when we are live streaming -->
         <script>
             var playerInstance = jwplayer("stream");
@@ -82,10 +104,10 @@ vagr
                 playlist: [{
                         sources: [
                             {
-                                file: "http://<?php print $localIP ?>:9081/<?php print getChannel()?>.m3u8",
+                                file: "http://<?php print $localIP ?>:9081/<?php print $hls_dir ?>/<?php print getChannel()?>/index.m3u8",
                             },
                             {
-                                file: "rtmp://<?php print $localIP ?>:1981/c/<?php print getChannel()?>",
+                                file: "rtmp://<?php print $localIP ?>:1981/<?php print $hls_dir ?>/<?php print getChannel()?>",
                             }
                         ]
                     }],
@@ -98,9 +120,8 @@ vagr
             });
         </script>
 
-        <a href="http://<?php print $localIP ?>:9082/action/stop" style="font-size:1.8em" target="_blank">Ask Sandy to kill the feed</a>
-        
         <!-- Google Analytics -->
+        <!-- Delete this block if you don't want to share diagnostic info with BiStorm -->
         <script>
                     (function (b, o, i, l, e, r) {
                         b.GoogleAnalyticsObject = l;
@@ -117,4 +138,4 @@ vagr
                     ga('create', 'UA-79492414-1', 'auto');ga('send', 'pageview');
         </script>
     </body>
-</html>
+</html>:

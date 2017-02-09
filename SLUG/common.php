@@ -18,8 +18,10 @@ function getChannel() {
         $hd_ch = trim($hd_ch, 'c/');
         $hd_ch = strval(floatval($hd_ch));
         return $hd_ch;
-    } else {
-        return '000';
+    } elseif ($pos = strpos($url, 'd/') !== false) {
+        $hd_ch = substr($url, $pos);
+        $hd_ch = trim($hd_ch, 'd/');
+        return $hd_ch;
     }
     
 }

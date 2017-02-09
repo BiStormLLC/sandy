@@ -29,10 +29,10 @@ for var in "$@"
 
 do
     [ ! -d $var ] && echo "Sandy: $var ? That's no directory, buster." && warning=1 && break
-    echo "Sandy: I'm emptying the streaming contents for $var ... "
-    [ -d $var ] && sudo rm -r $var/*.ts
-    [ -d $var ] && sudo rm -r $var/*.m3u8
-    [ -d $var ] && sudo rm -r $var/*.mp4 
+    [ -d $var ] && echo "Sandy: I'm emptying the streaming contents for $var ... "
+    [ -d $var ] && find $var -name "*.ts" -type f -delete
+    [ -d $var ] && find $var -name "*.m3u8" -type f -delete
+    [ -d $var ] && find $var -name "*.mp4" -type f -delete
 done
 
 if [ "${warning}" -eq 0 ]; then
