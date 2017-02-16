@@ -12,6 +12,17 @@
 #
 
 Vagrant.configure("2") do |config|
+    #   vagrant-notify-forwarder plugin is required for drag-and-drop conversions
+    [
+        { :name => "vagrant-notify-forwarder" },
+    ].each do |plugin|
+        if not Vagrant.has_plugin?(plugin[:name])
+          raise "#{plugin[:name]} is required. Please run `vagrant plugin install #{plugin[:name]}`"
+        end
+    end
+
+    config.notify_forwarder.enable = false
+
     config.vm.box = "bistorm/sandy"
     config.vm.box_url = "http://files.bistorm.us/sandy/metadata.json"
     config.vm.network "forwarded_port", guest: 9080, host:9084, auto_correct: false
@@ -59,9 +70,13 @@ Vagrant.configure("2") do |config|
     config.vm.synced_folder "./react-app", "/var/www/public/ux", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
     config.vm.synced_folder "./bistorm", "/usr/local/bin/bistorm", owner: "vagrant", group: "root", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
     config.vm.synced_folder "./SLUG", "/var/www/public/slug", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
+    config.vm.synced_folder "./cap_gal", "/var/www/public/capture-gallery", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
+    config.vm.synced_folder "./media/Video/Live/manifest", "/var/www/public/vod", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
 
     #config.vm.synced_folder "./react-app", "/var/www/public/ux", owner: "vagrant", group: "www-data",  :mount_options => ["dmode=777", "fmode=666"] 
     #config.vm.synced_folder "./bistorm", "/usr/local/bin/bistorm", owner: "vagrant", group: "root",  :mount_options => ["dmode=777", "fmode=666"] 
     #config.vm.synced_folder "./SLUG", "/var/www/public/slug", owner: "vagrant", group: "www-data",  :mount_options => ["dmode=777", "fmode=666"] 
+    #config.vm.synced_folder "./cap_gal", "/var/www/public/capture-gallery", owner: "vagrant", group: "www-data", :mount_options => ["dmode=777", "fmode=666"]
+    #config.vm.synced_folder "./media/Video/Live/manifest", "/var/www/public/vod", owner: "vagrant", group: "www-data", :mount_options => ["dmode=777", "fmode=666"] 
     
 end

@@ -1,0 +1,147 @@
+#!/bin/bash
+#
+# Description: Takes a raw mp4 file and converts it to different 
+#  stream-ready bitrates  
+#
+raw_dir_v="$1"
+raw_dir_a="$2"
+media_dir_v="$3"
+
+if [ ! -d $raw_dir_v ]; 
+    then
+      echo "Sandy: Please pass me the directory where raw .mp4 files are stored."
+      echo "exited with error"
+      exit 1
+fi
+
+if [ ! -d $raw_dir_a ]; 
+    then
+      echo "Sandy: Please pass me the directory where demuxed raw audio can be stored."
+      echo "exited with error"
+      exit 1
+fi
+
+if [ ! -d $media_dir ]; 
+    then
+      echo "Sandy: Please pass me a directory where converted files will be stored."
+      echo "exited with error"
+      exit 1
+fi
+
+parentdir="$(dirname $raw_dir_v)"
+
+# Wait until raw video directory receives a new file
+inotifywait -qmre close_write --format "%w%f" "$raw_dir_v" | while read filename; 
+do
+    
+    latest_stream_base=$(basename $filename)
+
+    # Ensure that we are converting an .mp4 file
+    if [ ! ${filename: -4} == ".mp4" ]; then
+        echo "Sandy: What magic do you believe me capable of performing, here?"
+        echo "Sandy: The most recent raw file added was not an .mp4"
+        echo "exited with error"
+        exit 1
+    fi
+
+    # Generate filename before .mp4
+    mp4fn=$(echo $latest_stream_base | cut -f 1 -d '.')
+    stringcreated=$(echo $mp4fn | cut -f 2 -d '-')
+    datecreated=$(date --d @$stringcreated +"%D")
+
+    # Ensure that the file contains a valid timestamp
+    val_date=$(date -d $datecreated)
+    if [ -z "$val_date" ] || [ "$val_date" == "" ]; then
+        echo "Sandy: This file will not be converted."
+        echo "Sandy: It needs to end in '-[UNIX_DATE]' format to continue."
+        echo "exited with error"
+        exit 1
+    fi
+
+    # File folder organizer
+    foldername=$(date --date @$stringcreated +"%Y/%m/%d")
+    mkdir -p "/vagrant/cap_gal/$foldername"
+
+    # Create preview image and dump converted file to the capture gallery folder
+    #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
+    /vagrant/bistorm/convert/thumbnail_generator $filename 500 8 6 "/vagrant/cap_gal/$foldername/$mp4fn.jpg" > /vagrant/logs/thumbnail_generator-log.txt
+
+    # Loop through each profile directory and use as a working directory
+    #  Then output to the appropriate media vod folder
+    for d in $parentdir/*; do
+
+        # Profile directory name
+        profile=$(basename $d)
+
+        # Leave if we're not in a dir or if we're in the raw directory
+        if [ ! -d "$d" ] || [ "$profile" == "raw" ]; then
+            break
+        fi
+
+        # Also, leave if the file added contains the profile name, because these are
+        #  per-directory drag-and-drop conversions
+        if [ "$latest_stream_base" == *"$profile"* ]; then
+            break
+        fi
+
+        # Profile folder organizer
+        mkdir -p "$media_dir_v/$profile/$foldername"
+
+        echo "Sandy: I am encoding the raw $latest_stream_base to $media_dir_v/$profile/$foldername/$mp4fn.mp4 ... "
+
+        # Conversion process: By default, do not demux to separate audio file
+        p_demux=0
+
+        ## DEFAULT PROFILE
+        p_custom_string=""
+        p_demux="0"
+        p_acodec="copy"
+        p_size_width="1280"
+        p_size_height="720"
+        p_filter=""
+        p_crf="18"
+        p_preset="ultrafast"
+        p_maxrate="2500k"
+        p_bufsize="5000k"
+        p_g="60"
+        p_profile="baseline"
+        p_format="mp4"
+        p_fileext="mp4"
+
+        # Import ffmpeg profile variables for this folder
+        if [ -f "$d/.profile" ]; then
+            source "$d/.profile"
+            export $(cut -d= -f1 "$d/.profile")
+        else
+            echo "Sandy: No .profile file was found for $d, so I'm using my defaults."
+        fi
+
+        # Including empty filter will break ffmpeg conversion,
+        #  So, we include a rescaler to the entire argument or none at all
+        if [ -z "$p_filter+x" ] || [ "$p_filter" == "" ]; then
+             p_filter="scale=iw*min($p_size_width/iw\,$p_size_height/ih):ih*min($p_size_width/iw\,$p_size_height/ih), pad=$p_size_width:$p_size_height:($p_size_width-iw*min($p_size_width/iw\,$p_size_height/ih))/2:($p_size_height-ih*min($p_size_width/iw\,$p_size_height/ih))/2"
+        fi
+
+        if [ "$p_demux" == "0" ]; then
+            # Convert file in working/profile directory
+            ffmpeg -i $filename -vcodec "$p_vcodec" -acodec "$p_acodec" -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$mp4fn.$p_fileext" &&
+            # Copy completed file to media directory
+            mv "$d/$mp4fn.$p_fileext" "$media_dir_v/$profile/$foldername/$mp4fn.$p_fileext" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt 
+
+            # Copy thumbnail to the vod directory
+            cp "/vagrant/cap_gal/$foldername/$mp4fn.jpg" "$media_dir_v/$profile/$foldername/"
+            
+        else 
+            # Copy audio into the specified raw audio folder
+            ffmpeg -i $filename -vn -acodec copy "$raw_dir_a/$foldername/$mp4fn.aac" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt 
+            ffmpeg -i $filename -vcodec "$p_vcodec" -an -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$mp4fn.$p_fileext" &&
+            # Copy completed file to media directory
+            mv "$d/$mp4fn.$p_fileext" "$media_dir_v/$profile/demuxed/$foldername/$mp4fn.$p_fileext" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt 
+
+            # Copy thumbnail to the vod demuxed directory
+            cp "/vagrant/cap_gal/$foldername/$mp4fn.jpg" "$media_dir_v/$profile/demuxed/$foldername/"
+        fi
+
+    done
+    exit 0
+done

@@ -1,0 +1,40 @@
+#!/bin/bash
+#
+# Description: Initiates a multi-bitrate conversion process when a stream is initiated
+#  When an RTMP .flv dump occurs in the input stream directory, a multi-bitrate template 
+#  is opened, sed is used to replace values, and the compiled XML file is placed in vCumulus
+#
+
+# XML template directory
+template_dir="/vagrant/bistorm/template"
+
+# Public Web directories
+vcumulus_dir="/var/www/public/ux/alpha"
+
+# Input stream directory
+stream_dir_v="/vagrant/convert/video"
+
+inotifywait -e create "$stream_dir_v" |
+  while read filename; do
+   
+        stream=$(ls -t -p "$stream_dir_v" | head -n1)
+        stream=$(basename $stream | cut -d- -f1 )
+
+        if [ ${filename: -4} == ".flv" ]; then    #Only process if RTMP stream is dumping
+            . /vagrant/bistorm/vars/sandy_ip &&
+            sed -e "s/%%SANDY_IP%%/$sandy_ip/g" "$template_dir/hls-multi-bitrate.m3u8" > "$vcumulus_dir/public/playlist/d-hls-mbr.m3u8" &&
+            sed -i -e "s/%%STREAM_ID%%/$stream/g" "$vcumulus_dir/public/playlist/d-hls-mbr.m3u8" &&
+            sed -e "s/%%SANDY_IP%%/$sandy_ip/g" "$template_dir/rtmp-multi-bitrate.smil" > "$vcumulus_dir/public/playlist/d-rtmp-mbr.smil" &&
+            sed -i -e "s/%%STREAM_ID%%/$stream/g" "$vcumulus_dir/public/playlist/d-rtmp-mbr.smil"
+
+            # Set multi-bitrate streams
+            ## Local
+            ffmpeg -i "rtmp://localhost/d/$stream" -s 1920x1080 -vcodec libx264 -crf 18 -preset ultrafast -maxrate 2500k -bufsize 4500k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/local" \
+            -s 1280x720 -vcodec libx264 -crf 18 -preset ultrafast -maxrate 1500k -bufsize 2000k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/wifi" \
+            -s 960x540 -vcodec libx264 -crf 20 -preset ultrafast -maxrate 800k -bufsize 1500k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/mobile" \
+            -s 720x480 -vcodec libx264 -crf 25 -preset ultrafast -maxrate 400k -bufsize 800k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/lo" \
+            -s 320x240 -vcodec libx264 -crf 50 -preset ultrafast -maxrate 200k -bufsize 400k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/audio" > /vagrant/logs/ffmpeg-log.txt
+            break
+        fi
+    exit 0
+  done

@@ -1,0 +1,15 @@
+<smil>
+    <head>
+        <meta base="rtmp://192.168.1.102/d" />
+    </head>
+    <body>
+        <switch>
+            <video src="rtmp://192.168.1.102:1981/d/show" system-bitrate="5000" />
+            <video src="rtmp://192.168.1.102:9081/d/local" system-bitrate="2500" />
+            <video src="rtmp://192.168.1.102:1981/d/wifi" system-bitrate="1500" />
+            <video src="rtmp://192.168.1.102:1981/d/mobile" system-bitrate="800" />
+            <video src="rtmp://192.168.1.102:1981/d/lo" system-bitrate="400" />
+            <video src="rtmp://192.168.1.102:1981/d/audio" system-bitrate="192" />
+        </switch>
+    </body>
+</smil>
