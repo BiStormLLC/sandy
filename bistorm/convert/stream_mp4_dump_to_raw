@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Description: Takes a raw flv file and dumps is as an .mp4 
+#  to the convert/raw directory 
+#
+stream="$1"
+copyto="$2"
+echo "Sandy: I received a request to process $stream ..."
+if [ ! -f $stream ] || [ ! ${stream: -4} == ".flv" ]; 
+  then
+    echo "Sandy: Please pass me an .flv file to process."
+    echo "exited with error"
+    exit 1
+fi
+if [ ! -d $copyto ]; 
+    then
+      echo "Sandy: Please pass me a directory to save the .mp4 into"
+      echo "exited with error"
+      exit 1
+fi
+
+echo "Sandy: I am encapsulating the current stream $stream to $copyto/$mp4fn.mp4 ... "
+
+# Get filename before .flv
+suffix=$(date +%s)
+mp4fn=$(basename "$stream")
+mp4fn=$(echo $mp4fn | cut -f 1 -d '.' | cut -f 1 -d '_')
+mp4fn=$(echo "$mp4fn-$suffix")
+
+# Folder organizer
+foldername=$(date +%Y/%m/%d)
+mkdir -p "$copyto/$foldername"
+
+# Create .mp4 and dump to $copyto folder
+ffmpeg -i $stream -vcodec copy -acodec copy "$copyto/$foldername/$mp4fn.mp4" 2> /dev/null
+
+# Clean the conversion root directory
+find /vagrant/convert/video/ -maxdepth 1 -type f -name "*.flv" -delete
+
+# Nginx RTMP module should clean these for us, but this ensures it's 
+#  all wiped clean after each time we finish publishing
+sudo rm -rf "/var/www/hls/c/*"
+sudo rm -rf "/var/www/hls/d/*"
+sudo rm -rf "/var/www/hls/z/*"
+sudo rm -rf "/var/www/dash/c/*"
+sudo rm -rf "/var/www/dash/d/*"
+sudo rm -rf "/var/www/dash/z/*"
+

@@ -12,6 +12,7 @@
 #
 
 Vagrant.configure("2") do |config|
+
     config.vm.box = "bistorm/sandy"
     config.vm.box_url = "http://files.bistorm.us/sandy/metadata.json"
     config.vm.network "forwarded_port", guest: 9080, host:9084, auto_correct: false
@@ -30,18 +31,21 @@ Vagrant.configure("2") do |config|
     #   https://friendsofvagrant.github.io/v1/docs/bridged_networking.html
     #
 
-    #  See this during setup? : Warning: "Remote connection disconnect. Retrying..."
-    #  Or "Configuring nd enabling network interfaces"
+    #   See this during setup? : Warning: "Remote connection disconnect. Retrying..."
+    #   Or "Configuring nd enabling network interfaces"
     #       Keep waiting! It may look like 'vagrant up' didn't work, but it
     #       can take a while to provision the server for your network.
 
     #   SECURITY NOTICE
     #   Vagrant boxes are insecure by default and by design, featuring 
-    #   public passwords, insecure keypairs for SSH access, and potentially allow 
+    #   public passwords, insecure keypairs for SSH access, and can potentially allow 
     #   root access over SSH. With these known credentials, your box is easily 
     #   accessible by anyone on your network. Before configuring Vagrant to use 
     #   a public network, consider all potential security implications and review 
     #   the default box configuration to identify potential security risks.
+    #   
+    #   ANY device with an open SSH connection can be used not only to infiltrate
+    #   the guest/host devices but also discover and hijack other known devices on the same network.
 
     config.vm.network "public_network", :public_network => "eth0"
     config.vm.network "public_network", :bridge => 'eth0', :use_dhcp_assigned_default_route => false
@@ -49,9 +53,9 @@ Vagrant.configure("2") do |config|
 
     # 2 GB memory.
     config.vm.provider :virtualbox do |v|
-      v.customize ["modifyvm", :id, "--memory", 2048]
+      v.customize ["modifyvm", :id, "--memory", 4096]
       v.customize ["modifyvm", :id, "--cpus", 2]
-      v.customize ["modifyvm", :id, "--cpuexecutioncap", "95"]
+      v.customize ["modifyvm", :id, "--cpuexecutioncap", "97"]
     end
     
     #PROBS ? 'Uh ... yeah' : 'Try changing to the non-NFS file version and tweet @babelfeed if you still need help!'
@@ -59,9 +63,13 @@ Vagrant.configure("2") do |config|
     config.vm.synced_folder "./react-app", "/var/www/public/ux", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
     config.vm.synced_folder "./bistorm", "/usr/local/bin/bistorm", owner: "vagrant", group: "root", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
     config.vm.synced_folder "./SLUG", "/var/www/public/slug", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
+    config.vm.synced_folder "./cap_gal", "/var/www/public/capture-gallery", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
+    config.vm.synced_folder "./media/Video/Live/manifest", "/var/www/public/vod", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
 
     #config.vm.synced_folder "./react-app", "/var/www/public/ux", owner: "vagrant", group: "www-data",  :mount_options => ["dmode=777", "fmode=666"] 
     #config.vm.synced_folder "./bistorm", "/usr/local/bin/bistorm", owner: "vagrant", group: "root",  :mount_options => ["dmode=777", "fmode=666"] 
     #config.vm.synced_folder "./SLUG", "/var/www/public/slug", owner: "vagrant", group: "www-data",  :mount_options => ["dmode=777", "fmode=666"] 
+    #config.vm.synced_folder "./cap_gal", "/var/www/public/capture-gallery", owner: "vagrant", group: "www-data", :mount_options => ["dmode=777", "fmode=666"]
+    #config.vm.synced_folder "./media/Video/Live/manifest", "/var/www/public/vod", owner: "vagrant", group: "www-data", :mount_options => ["dmode=777", "fmode=666"] 
     
 end

@@ -1,2 +1,3 @@
 #!/bin/bash
-echo "0.3.5"
+sandy_server_version="0.4.0"
+export sandy_server_version

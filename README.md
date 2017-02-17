@@ -241,9 +241,19 @@ Please note that in these examples, localhost/127.0.0.1/0.0.0.0 is usually what 
     -Modified HLS output directories to /var/www/hlsc and /var/www/hlsd
     -Verified RTMP listener can respond to request through Open Broadcast Software
     -tvheadend installed: configure through http://[SANDY_IP]:9981 user: vagrant password: vagrant
+### 0.4.0
+    -Configured nginx for /z RTMP adaptive streaming
+    -Configured nginx and nginx-rtmp modules for DASH HTTP streaming support
+    -Automatic post-processing of published RTMP/FLV to MP4 using profile folders
+    -Cron-based detection of new media files for in-place conversion in profile folders
+    -Manual build of ffmpeg for x265 support in Sandy Server base box
+    -Installation of Ruby on Rails in Sandy Server base box
+    -Thumbnail generation of published video files
+
 
 # WHAT TO EXPECT NEXT
->  MongoDB configuration for ffdshow transcoding profiles
->  Drag-and-drog media conversion from host: move files into /convert folder
-    and Sandy will detect and convert to different streaming formats
->  Video text to URL conversion inside vCumulus UX
+-  MongoDB integration for configuration of simulcasting services (Twitch, YouTube, etc.)
+-  Audio file conversion and better handling of demuxing audio and video
+-  Metadata handlers for converted media
+-  Initial work for clustering Sandy servers in a network
+-  Video text to URL conversion inside vCumulus UX

@@ -5,33 +5,54 @@
 #   This is primarily so that our devs don't write 'test code' in prod files.
 #
 
-# Get the HDHomeRunPrime IP address and set it in the prime_ip file
-hdhomerun_config discover | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > /vagrant/bistorm/prime_ip
+# Export Server IP address to sandy_ip var file
+export_head='#!/bin/bash'
+export_content="SANDYIP="
+export_ip=$(ifconfig eth1 | awk '/inet addr/{print substr($2,6)}')
+export_footer='export sandy_ip=$SANDYIP'
+echo -e "$export_head \n$export_content\"$export_ip\" \n$export_footer" > /vagrant/bistorm/vars/sandy_ip
+
+# Get the HDHomeRunPrime IP address and set it in the prime_ip var file
+export_content="PRIMEIP="
+export_ip=$(hdhomerun_config discover | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b")
+export_footer='export prime_ip=$PRIMEIP'
+echo -e "$export_head \n$export_content\"$export_ip\" \n$export_footer" > /vagrant/bistorm/vars/prime_ip
 
 # Initiate MediaTomb UPnP server
-sudo mediatomb -e eth1 -p 55555 -m /vagrant/media/ -c /etc/mediatomb/config.xml -d
+echo "Sandy: Did you know that you can access your media files on port 5555?"
+sudo cp /vagrant/bistorm/conf/mediatomb_config.xml /etc/mediatomb/config.xml
+sudo mediatomb -e eth1 -p 5555 -m /vagrant/media/ -c /etc/mediatomb/config.xml > /dev/null &
 
-# Anything below this line is ignored
-exit
+# Reset streams on first run
+/vagrant/bistorm/ffmpeg_kill "/var/www/hls" > /vagrant/logs/ffmpeg_kill-log.txt 
 
+# Copy conf files to nginx and apache2 folders and then restart services
+## Nginx
+sudo cp /vagrant/bistorm/conf/nginx.conf /usr/local/nginx/conf/
+sudo killall nginx
+sudo nginx
+
+## Apache
+sudo cp /vagrant/bistorm/conf/sandy.local.conf /etc/apache2/sites-available/
+sudo cp /vagrant/bistorm/conf/ports.conf /etc/apache2/ports.conf 
+sudo a2ensite sandy.local > /dev/null &
+sudo service apache2 restart > /dev/null &
+
+echo "Sandy: I am initiating listeners for auto-conversion of live feeds."
+echo "These listeners will continue, causing this script to never exit."
+/vagrant/bistorm/convert/raw_mp4_to_vod "/vagrant/convert/video/raw" "/vagrant/convert/audio/raw" "/vagrant/media/Video/Live" >> /vagrant/logs/raw_mp4_to_vod-log.txt &
 
 #################################
-Sandbox
+#Sandbox (Runs on boot and keeps going unless 'sudo killall storm' is run)
 #################################
 
-while [ true ]
-    do 
-    # Determine if nginx is currently responding to a request
-    if [ $(netstat -an | grep :9081 | grep ESTABLISHED | wc -l) -ne 0 ]; then
+#while [ true ]
+#    do
 
-        # Only serve if no other conversions 
-        if [ -z "$(pgrep ffmpeg)" ]; then
-            #OK to stream, yay! 
-            #echo "Sandy: 
-            #ffmpeg -d -i http://192.168.1.119:5004/auto/v513 -vcodec libx264 -s 720:480 -r 60 -acodec aac -strict -2 -crf 18 -preset veryfast -maxrate 5000k -bufsize 9000k -g 120 -profile:v baseline -f flv rtmp://localhost:1981/show/stream 2> /vagrant/ffmpeg-log.txt
-        fi        
-    fi
-done
+
+    #fi
+
+#done
 
 
 

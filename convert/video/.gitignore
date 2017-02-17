@@ -11,6 +11,8 @@
 *.mp5
 *.wav
 *.mp3
+*.aac
 *.mkv
 *.m4v
+*.mts
 *.flv

@@ -13,22 +13,22 @@
     /*******
      * Page Vars (currently global)
      */
-    // Activate channel if this is a /c/ stream
     $localIP = $_SERVER['SERVER_ADDR'];
-    $localPort = $_SERVER['SERVER_PORT'];
     $channel_url = "";
     $app_stream = "";
     $hls_dir = "";
+    //  Only activate channel if this is a /c/ stream
     if (strpos($_SERVER['REQUEST_URI'], '/c/') !== false) {
         $channel_url = "http://" . $localIP . ":9082/c/" . getChannel();
         $app_stream = "tv";
-        $hls_dir = "c";   
-    } else {
-        $channel_url = "http://" . $localIP . ":9082/d/" . getChannel();
-        $app_stream = "stream";
-        $hls_dir = "d"; 
-    }
-    
+        $app_name = "c";   
+    } else if (strpos($_SERVER['REQUEST_URI'], '/d/') !== false) {
+        $app_stream = getChannel();
+        $app_name = "d"; 
+    } else if (strpos($_SERVER['REQUEST_URI'], '/z/') !== false) {
+        $app_stream = getChannel();
+        $app_name = "z"; 
+    }  
 ?>
 
 <!doctype html>
@@ -39,7 +39,7 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title>BiStorm #ProjectSandy vCumulus 0.3.0</title>
+        <title>BiStorm #ProjectSandy vCumulus 0.4.</title>
         <meta name="description" content="Peer2Peer, Biz2Biz, Oh what a relief IT is.">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-icon.png" />
@@ -83,7 +83,7 @@
                 <div id="stream" width="100%" height="auto">				
                     <!-- for live streaming source -->
                     <video width="100%" height="95%" controls>
-                        <src="http://<?php print $localIP ?>:9081/<?php print $hls_dir ?>/<?php print getChannel()?>" type="application/x-mpegurl">
+                        <src="http://<?php print $localIP ?>:9081/dash<?php print $app_name ?>/<?php print getChannel()?>/index.mpd" type="application/x-mpegurl">
                     </video> 
                 </div>
             </div>
@@ -91,7 +91,7 @@
         <div class="footer-container">
             <footer class="wrapper">
                 <div class="info">
-                            <a href="http://<?php print $localIP ?>:9082/action/stop" style="font-size:1.8em" target="_blank">Ask Sandy to kill the feed</a>
+                    <a href="http://<?php print $localIP ?>:9082/action/stop" style="font-size:1.8em" target="_blank">Ask Sandy to kill all feeds and conversions</a>
                 </div>
             </footer>
         </div>
@@ -101,22 +101,32 @@
             var playerInstance = jwplayer("stream");
             playerInstance.setup({
                 //setTimeout(function () {}, 5000);
-                playlist: [{
-                        sources: [
-                            {
-                                file: "http://<?php print $localIP ?>:9081/<?php print $hls_dir ?>/<?php print getChannel()?>/index.m3u8",
-                            },
-                            {
-                                file: "rtmp://<?php print $localIP ?>:1981/<?php print $hls_dir ?>/<?php print getChannel()?>",
-                            }
-                        ]
-                    }],
+                <!-- <?php # if ($app_stream == "stream") { ?> 
+                "playlist": [{
+                      sources: [
+                            {file: "http://<?php print $localIP ?>/public/playlist/d-hls-mbr.m3u8"},
+                            {file: "http://<?php print $localIP ?>/public/playlist/d-rtmp-mbr.smil"}
+                      ]          
+                  }],
+                <?php # } else { ?> -->
+                 playlist: [{
+                    sources: [
+                        {   
+                            file: "http://<?php print $localIP ?>:9081/hls<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8"
+                        },
+                        
+                        {
+                            file: "http://<?php print $localIP ?>:9081/dash<?php print $app_name ?>/<?php print getChannel()?>/index.mpd"
+                            
+                        },
+                        {
+                            file: "rtmp://<?php print $localIP ?>:1981/<?php print $app_name ?>/<?php print getChannel()?>"
+                        }
+                    ]
+                }],
+                <?php # }  ?>
                 width: "100%",
                 aspectratio: "16:9",
-                hlslabels: {
-                    "2500": "High",
-                    "1000": "Medium"
-                }
             });
         </script>
 
