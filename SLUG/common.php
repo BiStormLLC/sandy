@@ -22,6 +22,10 @@ function getChannel() {
         $hd_ch = substr($url, $pos);
         $hd_ch = trim($hd_ch, 'd/');
         return $hd_ch;
+    } elseif ($pos = strpos($url, 'z/') !== false) {
+        $hd_ch = substr($url, $pos);
+        $hd_ch = trim($hd_ch, 'z/');
+        return $hd_ch;
     }
     
 }

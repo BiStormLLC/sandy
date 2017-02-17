@@ -20,51 +20,39 @@ echo -e "$export_head \n$export_content\"$export_ip\" \n$export_footer" > /vagra
 
 # Initiate MediaTomb UPnP server
 echo "Sandy: Did you know that you can access your media files on port 5555?"
-sudo killall mediatomb 2> /dev/null
-sudo mediatomb -e eth1 -p 55555 -m /vagrant/media/ -c /etc/mediatomb/config.xml -d 2> /dev/null
+sudo cp /vagrant/bistorm/conf/mediatomb_config.xml /etc/mediatomb/config.xml
+sudo mediatomb -e eth1 -p 5555 -m /vagrant/media/ -c /etc/mediatomb/config.xml > /dev/null &
 
 # Reset streams on first run
-"/vagrant/bistorm/ffmpeg_kill /var/www/hls" 2> /vagrant/logs/ffmpeg_kill-log.txt 
+/vagrant/bistorm/ffmpeg_kill "/var/www/hls" > /vagrant/logs/ffmpeg_kill-log.txt 
 
 # Copy conf files to nginx and apache2 folders and then restart services
 ## Nginx
-sudo cp /vagrant/bistorm/conf/nginx.conf /usr/local/nginx/conf/ 2> /dev/null
-sudo killall nginx 2> /dev/null
-sudo nginx 2> /dev/null
+sudo cp /vagrant/bistorm/conf/nginx.conf /usr/local/nginx/conf/
+sudo killall nginx
+sudo nginx
 
 ## Apache
-sudo cp /vagrant/bistorm/conf/sandy.local.conf /etc/apache2/sites-available/ 2> /dev/null
-sudo cp /vagrant/bistorm/conf/ports.conf /etc/apache2/ports.conf 2> /dev/null
-sudo a2ensite sandy.local > /dev/null
-sudo service apache2 restart > /dev/null
+sudo cp /vagrant/bistorm/conf/sandy.local.conf /etc/apache2/sites-available/
+sudo cp /vagrant/bistorm/conf/ports.conf /etc/apache2/ports.conf 
+sudo a2ensite sandy.local > /dev/null &
+sudo service apache2 restart > /dev/null &
+
+echo "Sandy: I am initiating listeners for auto-conversion of live feeds."
+echo "These listeners will continue, causing this script to never exit."
+/vagrant/bistorm/convert/raw_mp4_to_vod "/vagrant/convert/video/raw" "/vagrant/convert/audio/raw" "/vagrant/media/Video/Live" >> /vagrant/logs/raw_mp4_to_vod-log.txt &
 
 #################################
 #Sandbox (Runs on boot and keeps going unless 'sudo killall storm' is run)
 #################################
 
-while [ true ]
-    do
+#while [ true ]
+#    do
 
-    # Listen for access to /vagrant/convert/video/raw and begin conversions
-    #  to stream formats in their respective profile folders
 
-    /vagrant/bistorm/convert/raw_mp4_to_vod "/vagrant/convert/video/raw" "/vagrant/convert/audio/raw" "/vagrant/media/Video/Live" >> /vagrant/logs/raw_mp4_to_vod-log.txt
-
-    # Listen for access to the /var/www/hls/d directory and respond by
-    #  generating the multi-bitrate HLS streams for that directory
-    #. /vagrant/bistorm/init-raw-dump & . /vagrant/bistorm/init-mbr
-
-    # Listen for a new .flv stream and dump it to .mp4 
-    # in the raw directory when the stream has closed
-
-    # Listen for a new raw .mp4 and convert it to local, wifi and mobile profiles
-    #if [ "$rawconversion_v" -eq 1 ]; then
-    #    inotifywait -e access "$raw_dir_v" && 
-    #    cd $raw_dir_v && latest_stream=$(ls -t | head -n1) && 
-    #    /vagrant/bistorm/convert/raw_stream_to_mp4 "$raw_dir_v/$latest_stream" "$local_dir_v $wifi_dir_v $mobile_dir_v" 2> /vagrant/logs/stream_mp4_covert-log.txt && rawconversion=0
     #fi
 
-done
+#done
 
 
 

@@ -2,15 +2,16 @@
 #
 # Description: Channel streamer for SLUG SiliconDust extension
 #
-echo "Sandy: I received a request to stream channel $1 ... "
-ip=`cat /vagrant/bistorm/prime_ip`
-echo "Sandy: According to /vagrant/bistorm/vars, your SiliconDust device IP is ... $ip"
+echo "Sandy: I received a request to stream channel $1 ... " 
+. /vagrant/bistorm/vars/prime_ip
+echo -e "\nSandy: According to /vagrant/bistorm/vars, your SiliconDust device IP is ... $prime_ip" 
 
 count=`ps aux | grep -v "grep" | grep -c ffmpeg`
 # New stream, yay!  For performance, only serve if there is no existing conversions 
 if [ $count -le 5 ]; then
-    ffmpeg -i "http://$ip:5004/auto/v$1?transcode=mobile" -s 960x540 -vcodec libx264 -crf 25 -preset ultrafast -maxrate 2500k -bufsize 2500k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost:1981/c/$1"
-    echo "Sandy: ffmpeg is running!  Do you see a stream?"
+    ffmpeg -i "http://$prime_ip:5004/auto/v$1?transcode=mobile" -s 960x540 -vcodec libx264 -crf 25 -preset ultrafast -maxrate 2500k -bufsize 2500k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost:1981/c/$1" > /vagrant/logs/hdhomerun_channel-ffmpeg-log.txt 2>&1 &
+    echo -e "\nSandy: ffmpeg is running!  Do you see a stream?" 
 else
+    echo -e "\nSandy: FFmpeg is current processing other jobs.  Please use my 'kill' link to stop them and then refresh the page." >> /vagrant/logs/hdhomerun_channel-log.txt
     exit 0
 fi

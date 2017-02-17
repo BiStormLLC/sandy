@@ -39,7 +39,7 @@ for d in $video_dir/*; do
         if [[ $thl_format == ".mov" ]] || [[ $thl_format == ".flv" ]] || [[ $thl_format == ".mpeg" ]] || \
             [[ $thl_format == ".mp4" ]] || [[ $thl_format == ".mkv" ]] || [[ $thl_format == ".avi" ]] || \
             [[ $thl_format == ".mts" ]] || [[ $thl_format == ".m4v" ]] || [[ $thl_format == ".mp5" ]] || [[ $tl_format == ".ts" ]]; then
-            file_base="$(basename $f)"
+            file_base="$f_base"
             acc_files+=($file_base)
         fi
     done
@@ -72,11 +72,6 @@ for d in $video_dir/*; do
 
         # File folder organizer
         foldername=$(date +"%Y/%m/%d") 
-
-        # Create preview image and dump converted file to the capture gallery folder
-        #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
-        #mkdir -p "/vagrant/cap_gal/$(basename $d)/$foldername"
-        #/vagrant/bistorm/convert/thumbnail_generator "$d/$latest_file_base" 500 8 6 "/vagrant/cap_gal/$uid/$foldername/$original_fn-$uid.jpg" 2>> /vagrant/logs/thumbnail_generator-log.txt
 
         # Conversion process: By default, do not demux to separate audio file
         p_demux=0
@@ -114,34 +109,43 @@ for d in $video_dir/*; do
              p_filter="scale=iw*min($p_size_width/iw\,$p_size_height/ih):ih*min($p_size_width/iw\,$p_size_height/ih), pad=$p_size_width:$p_size_height:($p_size_width-iw*min($p_size_width/iw\,$p_size_height/ih))/2:($p_size_height-ih*min($p_size_width/iw\,$p_size_height/ih))/2"
         fi
 
+        outputfile="$d/$original_fn-$uid.$p_fileext"
+
         if [ "$p_demux" == "0" ]; then
             # Convert file in working/profile directory
             if [ "$p_custom_string" == "" ]; then 
-                ffmpeg -i "$d/$latest_file_base" -vcodec "$p_vcodec" -acodec "$p_acodec" -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$original_fn-$uid.$p_fileext" > /vagrant/logs/init-video-profile-conversion-ffmpeg-log.txt 
+                ffmpeg -y -i "$d/$latest_file_base" -vcodec "$p_vcodec" -acodec "$p_acodec" -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$outputfile" > /vagrant/logs/init_video_profile_conversion-ffmpeg-log.txt 2>&1 & 
             else
-                ffmpeg -i "$d/$latest_file_base" "$p_custom_string" "$d/$original_fn-$uid.$p_fileext" > /vagrant/logs/init-video-profile-conversion-ffmpeg-log.txt 
+                eval ffmpeg -y -i "$d/$latest_file_base" $p_custom_string "$outputfile" > /vagrant/logs/init_video_profile_conversion-ffmpeg-log.txt 2>&1 &
             fi   
         else 
             # Create demuxed directories in working directory
-            mkdir -p "$d/video"
             mkdir -p "$d/audio"
-
             # Copy into the audio and video folders
             if [ "$p_custom_string" == "" ]; then 
-                ffmpeg -i "$d/$latest_file_base" -vn -acodec copy "$d/audio/$original_fn-$uid.aac" &&
-                    -vcodec "$p_vcodec" -an -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$original_fn-$uid.$p_fileext" > /vagrant/logs/init-video-profile-conversion-ffmpeg-log.txt 
-            else
-                ffmpeg -i "$d/$latest_file_base" -vn -acodec copy "$d/audio/$original_fn-$uid.aac" &&
-                -an "$p_custom_string" "$d/video/$original_fn-$uid.$p_fileext" > /vagrant/logs/init-video-profile-conversion-ffmpeg-log.txt
+                ffmpeg -y -vn -i "$d/$latest_file_base" -acodec copy "$d/audio/$original_fn-$uid.aac" > /vagrant/logs/init_video_profile_conversion-audio-ffmpeg-log.txt 2>&1 &
+                ffmpeg -y -i "$d/$latest_file_base" -vcodec "$p_vcodec" -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$output_file" > /vagrant/logs/init_video_profile_conversion-video-ffmpeg-log.txt  2>&1 &
+            else  
+                ffmpeg -y -vn -i "$d/$latest_file_base" -acodec copy "$d/audio/$original_fn-$uid.aac" > /vagrant/logs/init_video_profile_conversion-audio-ffmpeg-log.txt 2>&1 &
+                eval ffmpeg -y -i "$d/$latest_file_base" -an $p_custom_string "$outputfile" > /vagrant/logs/init_video_profile_conversion-video-ffmpeg-log.txt 2>&1 &
             fi
         fi
 
-        # Copy thumbnail to the profile directory
-        #cp "/vagrant/cap_gal/$foldername/$original_fn-$uid.jpg" "$d/"
+        if [ -f "$outputfile" ]; then
+            # Move the original file outside of the profile folder
+            sudo mv "$d/$latest_file_base" "$video_dir/$latest_file_base"
 
-        # Log the profile conversion activity
-        echo "Sandy: $d/$original_fn-$uid.$p_fileext has completed converting and has been logged." 
-        echo "$d/$original_fn-$uid.$p_fileext" >> "/vagrant/logs/profile-$uid-conversions-log.txt"
+            # Create preview image and dump converted file to the capture gallery folder
+            #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
+            mkdir -p "/vagrant/cap_gal/$foldername"
+            /vagrant/bistorm/convert/thumbnail_generator "$outputfile" 300 8 6 "/vagrant/cap_gal/$foldername/$original_fn-$uid.jpg" &&
+            sudo cp "/vagrant/cap_gal/$foldername/$original_fn-$uid.jpg" "$d/" 2>> /vagrant/logs/thumbnail_generator-log.txt
+
+            # Log the profile conversion activity
+            echo "Sandy: $d/$original_fn-$uid.$p_fileext has completed converting and has been logged." 
+            echo -e "$outputfile\n" >> "/vagrant/logs/profile-$uid-conversions-log.txt"
+        fi
+
     done
 done
 exit 0

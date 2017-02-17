@@ -21,13 +21,14 @@
     if (strpos($_SERVER['REQUEST_URI'], '/c/') !== false) {
         $channel_url = "http://" . $localIP . ":9082/c/" . getChannel();
         $app_stream = "tv";
-        $hls_dir = "c";   
-    } else {
-        $channel_url = "http://" . $localIP . ":9082/d/" . getChannel();
-        $app_stream = "stream";
-        $hls_dir = "d"; 
-    }
-    
+        $app_name = "c";   
+    } else if (strpos($_SERVER['REQUEST_URI'], '/d/') !== false) {
+        $app_stream = getChannel();
+        $app_name = "d"; 
+    } else if (strpos($_SERVER['REQUEST_URI'], '/z/') !== false) {
+        $app_stream = getChannel();
+        $app_name = "z"; 
+    }  
 ?>
 
 <!doctype html>
@@ -82,7 +83,7 @@
                 <div id="stream" width="100%" height="auto">				
                     <!-- for live streaming source -->
                     <video width="100%" height="95%" controls>
-                        <src="http://<?php print $localIP ?>:9081/<?php print $hls_dir ?>/<?php print getChannel()?>/index.m3u8" type="application/x-mpegurl">
+                        <src="http://<?php print $localIP ?>:9081/dash<?php print $app_name ?>/<?php print getChannel()?>/index.mpd" type="application/x-mpegurl">
                     </video> 
                 </div>
             </div>
@@ -100,25 +101,30 @@
             var playerInstance = jwplayer("stream");
             playerInstance.setup({
                 //setTimeout(function () {}, 5000);
-                <?php if ($app_stream == "stream") { ?>
+                <!-- <?php # if ($app_stream == "stream") { ?> 
                 "playlist": [{
                       sources: [
                             {file: "http://<?php print $localIP ?>/public/playlist/d-hls-mbr.m3u8"},
                             {file: "http://<?php print $localIP ?>/public/playlist/d-rtmp-mbr.smil"}
                       ]          
                   }],
-                <?php } else { ?>
+                <?php # } else { ?> -->
                  playlist: [{
                     sources: [
+                        {   
+                            file: "http://<?php print $localIP ?>:9081/hls<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8"
+                        },
+                        
                         {
-                            file: "http://<?php print $localIP ?>:9081/<?php print $hls_dir ?>/<?php print getChannel()?>/index.m3u8",
+                            file: "http://<?php print $localIP ?>:9081/dash<?php print $app_name ?>/<?php print getChannel()?>/index.mpd"
+                            
                         },
                         {
-                            file: "rtmp://<?php print $localIP ?>:1981/<?php print $hls_dir ?>/<?php print getChannel()?>",
+                            file: "rtmp://<?php print $localIP ?>:1981/<?php print $app_name ?>/<?php print getChannel()?>"
                         }
                     ]
                 }],
-                <?php } ?>
+                <?php # }  ?>
                 width: "100%",
                 aspectratio: "16:9",
             });

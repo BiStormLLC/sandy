@@ -1,0 +1,43 @@
+# We have not scheduled automated testing for the existing version
+#  Validation can be used against these scripts
+
+Tests assume that the Sandy Server Vagrant base box has just booted
+
+## Network
+
+When I boot, is there a BiStorm Sandy UPnP and DLNA Server recognized in Network Connections?
+
+Can I access MediaTomb from http://192.168.33.10:5555/?
+
+Can I access MiniDLNA from http://192.168.33.10:9500/?
+
+
+## In-Profile Video Conversion
+
+Can I move a file into the directory and initiate conversion using crontab?
+
+When conversion is completed, does a thumbnail exist in the cap_gal directory?
+
+When conversion is completed, does a thumbnail exist in the profile directory?
+
+
+## Live RTMP Publishing
+
+During publishing, does publishing cause a raw .flv file to saved to /convert/video?
+
+When I finish publishing, is a timestamped .mp4 file saved to /convert/video/raw?
+
+When I finish publishing, can I see the profile folders actively converting the raw mp4 file?
+
+When I finish publishing and converting, is a converted file saved to /media/Video/Live/$profile?
+
+When I finish publishing and converting, does a thumbnail exist in the cap_gal directory?
+
+When I finish publishing and converting, does a thumbnail exist /media/Video/Live/$profile?
+
+
+
+
+
+
+

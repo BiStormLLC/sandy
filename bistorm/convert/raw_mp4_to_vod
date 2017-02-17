@@ -33,7 +33,6 @@ parentdir="$(dirname $raw_dir_v)"
 # Wait until raw video directory receives a new file
 inotifywait -qmre close_write --format "%w%f" "$raw_dir_v" | while read filename; 
 do
-    
     latest_stream_base=$(basename $filename)
 
     # Ensure that we are converting an .mp4 file
@@ -60,11 +59,6 @@ do
 
     # File folder organizer
     foldername=$(date --date @$stringcreated +"%Y/%m/%d")
-    mkdir -p "/vagrant/cap_gal/$foldername"
-
-    # Create preview image and dump converted file to the capture gallery folder
-    #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
-    /vagrant/bistorm/convert/thumbnail_generator $filename 500 8 6 "/vagrant/cap_gal/$foldername/$mp4fn.jpg" > /vagrant/logs/thumbnail_generator-log.txt
 
     # Loop through each profile directory and use as a working directory
     #  Then output to the appropriate media vod folder
@@ -75,13 +69,13 @@ do
 
         # Leave if we're not in a dir or if we're in the raw directory
         if [ ! -d "$d" ] || [ "$profile" == "raw" ]; then
-            break
+            continue
         fi
 
         # Also, leave if the file added contains the profile name, because these are
         #  per-directory drag-and-drop conversions
         if [ "$latest_stream_base" == *"$profile"* ]; then
-            break
+            continue
         fi
 
         # Profile folder organizer
@@ -123,25 +117,42 @@ do
         fi
 
         if [ "$p_demux" == "0" ]; then
+            outputfile="$media_dir_v/$profile/$foldername/$mp4fn.$p_fileext"
             # Convert file in working/profile directory
-            ffmpeg -i $filename -vcodec "$p_vcodec" -acodec "$p_acodec" -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$mp4fn.$p_fileext" &&
-            # Copy completed file to media directory
-            mv "$d/$mp4fn.$p_fileext" "$media_dir_v/$profile/$foldername/$mp4fn.$p_fileext" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt 
-
-            # Copy thumbnail to the vod directory
-            cp "/vagrant/cap_gal/$foldername/$mp4fn.jpg" "$media_dir_v/$profile/$foldername/"
-            
+            if [ "$p_custom_string" == "" ]; then 
+                ffmpeg -y -i $filename -vcodec "$p_vcodec" -acodec "$p_acodec" -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$mp4fn.$p_fileext" &&
+                # Copy completed file to media directory
+                mv "$d/$mp4fn.$p_fileext" "$outputfile" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt  
+            else
+                ffmpeg -y -i $filename ${p_custom_string} "$d/$mp4fn.$p_fileext" &&
+                mv "$d/$mp4fn.$p_fileext" "$outputfile" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt 
+            fi    
         else 
+            outputfile="$media_dir_v/$profile/demuxed/$foldername/$mp4fn.$p_fileext"
             # Copy audio into the specified raw audio folder
-            ffmpeg -i $filename -vn -acodec copy "$raw_dir_a/$foldername/$mp4fn.aac" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt 
-            ffmpeg -i $filename -vcodec "$p_vcodec" -an -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$mp4fn.$p_fileext" &&
-            # Copy completed file to media directory
-            mv "$d/$mp4fn.$p_fileext" "$media_dir_v/$profile/demuxed/$foldername/$mp4fn.$p_fileext" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt 
-
-            # Copy thumbnail to the vod demuxed directory
-            cp "/vagrant/cap_gal/$foldername/$mp4fn.jpg" "$media_dir_v/$profile/demuxed/$foldername/"
+            if [ "$p_custom_string" == "" ]; then 
+                ffmpeg -y -i $filename -vn -acodec copy "$raw_dir_a/$foldername/$mp4fn.aac" > /vagrant/logs/raw_mp4_to_vod-audio-ffmpeg-log.txt 2>&1 &
+                ffmpeg -y -i $filename -vcodec "$p_vcodec" -an -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$mp4fn.$p_fileext" &&
+                # Copy completed file to media directory
+                mv "$d/$mp4fn.$p_fileext" "$outputfile" > /vagrant/logs/raw_mp4_to_vod-video-ffmpeg-log.txt 2>&1 &
+            else
+                ffmpeg -y -i $filename -vn -acodec copy "$raw_dir_a/$foldername/$mp4fn.aac" > /vagrant/logs/raw_mp4_to_vod-audio-ffmpeg-log.txt 2>&1 &
+                eval ffmpeg -y -i $filename -an $p_custom_string "$d/$mp4fn.$p_fileext" &&
+                # Copy completed file to media directory
+                mv "$d/$mp4fn.$p_fileext" "$outputfile" > /vagrant/logs/raw_mp4_to_vod-video-ffmpeg-log.txt 2>&1 &
+            fi
         fi
 
+        if [ -f "$outputfile" ]; then
+            # Create preview image and dump converted file to the capture gallery folder
+            #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
+            mkdir -p "/vagrant/cap_gal/$foldername"
+            /vagrant/bistorm/convert/thumbnail_generator "$outputfile" 300 8 6 "/vagrant/cap_gal/$foldername/$mp4fn.jpg" &&
+            sudo cp "/vagrant/cap_gal/$foldername/$mp4fn.jpg" "$media_dir_v/$profile/$foldername/" >> /vagrant/logs/thumbnail_generator-log.txt
+
+            # Log the profile conversion activity
+            echo -e"\n\nSandy: $outputfile has completed converting and has been logged.\n" 
+            echo -e "$outputfile\n" >> "/vagrant/logs/profile-$profile-conversions-log.txt"
+        fi
     done
-    exit 0
 done

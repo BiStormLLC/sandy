@@ -1,7 +1,7 @@
 .DS_STORE
 .vagrant
-sandy.box
+*.box
 metadata.json
-./react-app/nbproject/private/
-./hls/*
-ffmpeg-log.txt
+/logs/*
+/cap_gal/*
+/ProjectSandy/*
