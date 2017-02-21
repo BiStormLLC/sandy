@@ -59,17 +59,23 @@ Vagrant.configure("2") do |config|
     end
     
     #PROBS ? 'Uh ... yeah' : 'Try changing to the non-NFS file version and tweet @babelfeed if you still need help!'
-    # <-- Paste one of these at the beginning of lines 19 - 21.  Then, remove them from lines 23-25.  Then, save this file.
+    # <-- Paste one of these comment markers # at the beginning of lines 63 - 66.  Then, remove them from lines 75-79.  Then, save this file and run 'vagrant up' again.
     config.vm.synced_folder "./react-app", "/var/www/public/ux", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
     config.vm.synced_folder "./bistorm", "/usr/local/bin/bistorm", owner: "vagrant", group: "root", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
     config.vm.synced_folder "./SLUG", "/var/www/public/slug", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
     config.vm.synced_folder "./cap_gal", "/var/www/public/capture-gallery", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
-    config.vm.synced_folder "./media/Video/Live/manifest", "/var/www/public/vod", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
+
+    #  VOD/Media Library *Option 1*: Store your media in the working directory of #ProjectSandy
+    config.vm.synced_folder "./media", "/var/www/public/vod", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
+    
+    #  VOD/Media Library *Option 2*: Store your media in another location: this can be a NAS
+    #  as long as you have created a virtual path to it on your host.
+    #config.vm.synced_folder "A:\Media", "/var/www/public/vod", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
 
     #config.vm.synced_folder "./react-app", "/var/www/public/ux", owner: "vagrant", group: "www-data",  :mount_options => ["dmode=777", "fmode=666"] 
     #config.vm.synced_folder "./bistorm", "/usr/local/bin/bistorm", owner: "vagrant", group: "root",  :mount_options => ["dmode=777", "fmode=666"] 
     #config.vm.synced_folder "./SLUG", "/var/www/public/slug", owner: "vagrant", group: "www-data",  :mount_options => ["dmode=777", "fmode=666"] 
     #config.vm.synced_folder "./cap_gal", "/var/www/public/capture-gallery", owner: "vagrant", group: "www-data", :mount_options => ["dmode=777", "fmode=666"]
-    #config.vm.synced_folder "./media/Video/Live/manifest", "/var/www/public/vod", owner: "vagrant", group: "www-data", :mount_options => ["dmode=777", "fmode=666"] 
+    #config.vm.synced_folder "./media", "/var/www/public/vod", owner: "vagrant", group: "www-data", :mount_options => ["dmode=777", "fmode=666"]
     
 end
