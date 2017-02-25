@@ -1,22 +1,14 @@
 #!/bin/bash
 #
-# Description: Takes a raw mp4 file and converts it to different 
-#  stream-ready bitrates  
+# Description: Takes a raw folder mp4 file and converts it to different 
+#  stream-ready bitrates using conversion profile folders
 #
 raw_dir_v="$1"
-raw_dir_a="$2"
-media_dir_v="$3"
+media_dir="$2"
 
 if [ ! -d $raw_dir_v ]; 
     then
       echo "Sandy: Please pass me the directory where raw .mp4 files are stored."
-      echo "exited with error"
-      exit 1
-fi
-
-if [ ! -d $raw_dir_a ]; 
-    then
-      echo "Sandy: Please pass me the directory where demuxed raw audio can be stored."
       echo "exited with error"
       exit 1
 fi
@@ -46,7 +38,7 @@ do
     # Generate filename before .mp4
     mp4fn=$(echo $latest_stream_base | cut -f 1 -d '.')
     stringcreated=$(echo $mp4fn | cut -f 2 -d '-')
-    datecreated=$(date --d @$stringcreated +"%D")
+    datecreated=$(date --d @$stringcreated +"_%Y-%B-%d-%A_%H-%M-%S")
 
     # Ensure that the file contains a valid timestamp
     val_date=$(date -d $datecreated)
@@ -72,35 +64,34 @@ do
             continue
         fi
 
-        # Also, leave if the file added contains the profile name, because these are
-        #  per-directory drag-and-drop conversions
+        # Also, leave if the file added contains the profile name, because those are
+        #  considered completed jobs
         if [ "$latest_stream_base" == *"$profile"* ]; then
             continue
-        fi
-
-        # Profile folder organizer
-        mkdir -p "$media_dir_v/$profile/$foldername"
-
-        echo "Sandy: I am encoding the raw $latest_stream_base to $media_dir_v/$profile/$foldername/$mp4fn.mp4 ... "
-
-        # Conversion process: By default, do not demux to separate audio file
-        p_demux=0
-
+        fi   
+        
         ## DEFAULT PROFILE
         p_custom_string=""
         p_demux="0"
-        p_acodec="copy"
+        p_v_codec="copy"
+        p_a_codec="copy"
         p_size_width="1280"
         p_size_height="720"
         p_filter=""
         p_crf="18"
         p_preset="ultrafast"
-        p_maxrate="2500k"
-        p_bufsize="5000k"
+        p_maxrate="1000k"
+        p_bufsize="1500k"
+        p_a_bitrate="192k"
         p_g="60"
-        p_profile="baseline"
+        p_tune="fastdecode"
         p_format="mp4"
         p_fileext="mp4"
+        # NOT REQUIRED : set p_thumb_gen to "0" in .profile to ignore thumbnail generation
+        p_thumb_gen="1"
+        p_thumb_height="250"
+        p_thumb_rows="1"
+        p_thumb_cols="30"
 
         # Import ffmpeg profile variables for this folder
         if [ -f "$d/.profile" ]; then
@@ -113,46 +104,84 @@ do
         # Including empty filter will break ffmpeg conversion,
         #  So, we include a rescaler to the entire argument or none at all
         if [ -z "$p_filter+x" ] || [ "$p_filter" == "" ]; then
+            # Implements $p_size_width and $p_size_height to set dimension format
              p_filter="scale=iw*min($p_size_width/iw\,$p_size_height/ih):ih*min($p_size_width/iw\,$p_size_height/ih), pad=$p_size_width:$p_size_height:($p_size_width-iw*min($p_size_width/iw\,$p_size_height/ih))/2:($p_size_height-ih*min($p_size_width/iw\,$p_size_height/ih))/2"
         fi
 
+        ## Profile not always required, so we truncate if not used
+        if [ -z "$p_v_profile+x" ] || [ "$p_v_profile" == "" ]; then
+            p_v_profile=""
+        else
+            p_v_profile=" -profile:v $p_v_profile "
+        fi
+
+        ## Preset not always required, so we truncate if not used
+        if [ -z "$p_preset+x" ] || [ "$p_preset" == "" ]; then
+            p_preset=""
+        else
+            p_preset=" -preset $p_preset "
+        fi
+
+        save_loc="$media_dir/video/live/$profile/$foldername/$mp4fn"
+        outputfile="$save_loc/index.$p_fileext"
+
+        mkdir -p "$save_loc"
+        
+        # Copy in metadata 
+        /usr/local/bin/ffmpeg -y -i $filename -f ffmetadata "$save_loc/$mp4fn-input-metadata.txt"
+
+        # Copy in info
+        /usr/local/bin/ffprobe -show_format -show_streams $filename > "$save_loc/$mp4fn-input-info.txt"
+        
+        ## Concatenated string of all of our profile settings
+        ffmpeg_string=" -vcodec $p_v_codec -tune $p_tune -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -crf $p_crf$p_v_profile$p_preset-maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"      
+
+        ffmpeg_queue > /dev/null
+
+        echo "Sandy: I am encoding the raw $latest_stream_base to $outputfile ... "
+
         if [ "$p_demux" == "0" ]; then
-            outputfile="$media_dir_v/$profile/$foldername/$mp4fn.$p_fileext"
             # Convert file in working/profile directory
             if [ "$p_custom_string" == "" ]; then 
-                ffmpeg -y -i $filename -vcodec "$p_vcodec" -acodec "$p_acodec" -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$mp4fn.$p_fileext" &&
+                /usr/local/bin/ffmpeg -y -i $filename $ffmpeg_string "$d/$mp4fn-$profile.$p_fileext" > /tmp/ffmpeg 2>/vagrant/logs/ffmpeg_audio_$uid-log.txt &&  echo "$outputfile | " >> "/vagrant/logs/profile-video-$profile-conversions-log.txt" &&
                 # Copy completed file to media directory
-                mv "$d/$mp4fn.$p_fileext" "$outputfile" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt  
+                mv "$d/$mp4fn-$profile.$p_fileext" "$outputfile"
             else
-                ffmpeg -y -i $filename ${p_custom_string} "$d/$mp4fn.$p_fileext" &&
-                mv "$d/$mp4fn.$p_fileext" "$outputfile" > /vagrant/logs/raw_mp4_to_vod-ffmpeg-log.txt 
-            fi    
-        else 
-            outputfile="$media_dir_v/$profile/demuxed/$foldername/$mp4fn.$p_fileext"
-            # Copy audio into the specified raw audio folder
-            if [ "$p_custom_string" == "" ]; then 
-                ffmpeg -y -i $filename -vn -acodec copy "$raw_dir_a/$foldername/$mp4fn.aac" > /vagrant/logs/raw_mp4_to_vod-audio-ffmpeg-log.txt 2>&1 &
-                ffmpeg -y -i $filename -vcodec "$p_vcodec" -an -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$d/$mp4fn.$p_fileext" &&
+                /usr/local/bin/ffmpeg -y -i $filename $p_custom_string "$d/$mp4fn-$profile.$p_fileext" > /tmp/ffmpeg 2>/vagrant/logs/ffmpeg_audio_$uid-log.txt && echo "$outputfile | " >> "/vagrant/logs/profile-video-$profile-conversions-log.txt" &&
                 # Copy completed file to media directory
-                mv "$d/$mp4fn.$p_fileext" "$outputfile" > /vagrant/logs/raw_mp4_to_vod-video-ffmpeg-log.txt 2>&1 &
+                mv "$d/$mp4fn-$profile.$p_fileext" "$outputfile"
+            fi
+        else
+            # Create location to store audio
+            mkdir -p "$media_dir/audio/live/$profile/$foldername"
+            $save_loc_a="$media_dir/audio/live/$profile/$foldername"
+            # Copy demuxed audio into the Audio folder
+            if [ "$p_custom_string" == "" ]; then
+                /usr/local/bin/ffmpeg -y -i $filename -vn -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$save_loc_a/$mp4fn.aac"
+                /usr/local/bin/ffmpeg -y -i $filename $ffmpeg_string "$d/$mp4fn-$profile.$p_fileext" > /tmp/ffmpeg 2>/vagrant/logs/ffmpeg_audio_$uid-log.txt && echo "$outputfile | " >> "/vagrant/logs/profile-video-$profile-conversions-log.txt"  &&
+                mv "$d/$mp4fn-$profile.$p_fileext" "$outputfile"
             else
-                ffmpeg -y -i $filename -vn -acodec copy "$raw_dir_a/$foldername/$mp4fn.aac" > /vagrant/logs/raw_mp4_to_vod-audio-ffmpeg-log.txt 2>&1 &
-                eval ffmpeg -y -i $filename -an $p_custom_string "$d/$mp4fn.$p_fileext" &&
-                # Copy completed file to media directory
-                mv "$d/$mp4fn.$p_fileext" "$outputfile" > /vagrant/logs/raw_mp4_to_vod-video-ffmpeg-log.txt 2>&1 &
+                /usr/local/bin/ffmpeg -y -i $filename -vn -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$media_dir/audio/live/$profile/$foldername/$mp4fn.aac"
+                eval /usr/local/bin/ffmpeg -y -i $filename -an $p_custom_string "$d/$mp4fn-$profile.$p_fileext" > /tmp/ffmpeg 2>/vagrant/logs/ffmpeg_audio_$uid-log.txt && echo "$outputfile | " >> "/vagrant/logs/profile-video-$profile-conversions-log.txt" &&
+                mv "$d/$mp4fn-$profile.$p_fileext" "$outputfile"
             fi
         fi
 
-        if [ -f "$outputfile" ]; then
-            # Create preview image and dump converted file to the capture gallery folder
-            #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
-            mkdir -p "/vagrant/cap_gal/$foldername"
-            /vagrant/bistorm/convert/thumbnail_generator "$outputfile" 300 8 6 "/vagrant/cap_gal/$foldername/$mp4fn.jpg" &&
-            sudo cp "/vagrant/cap_gal/$foldername/$mp4fn.jpg" "$media_dir_v/$profile/$foldername/" >> /vagrant/logs/thumbnail_generator-log.txt
+        inotifywait -qre close_write --format "%w%f" "$save_loc" | while read filename; do  
+            echo "Sandy: $outputfile has initiated conversion and has been logged."
+            # Copy out metadata
+            /usr/local/bin/ffmpeg -y -i "$filename" -f ffmetadata "$save_loc/$mp4fn-output-metadata.txt" 
 
-            # Log the profile conversion activity
-            echo -e"\n\nSandy: $outputfile has completed converting and has been logged.\n" 
-            echo -e "$outputfile\n" >> "/vagrant/logs/profile-$profile-conversions-log.txt"
-        fi
+            # Copy out info
+            /usr/local/bin/ffprobe -show_format -show_streams "$filename" > "$save_loc/$mp4fn-output-info.txt"
+
+             if [ ! "$p_thumb_gen" == "0" ]; then
+                # Create preview image and dump converted file to the capture gallery folder
+                #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
+                mkdir -p "/vagrant/cap_gal/$foldername"
+                /vagrant/bistorm/convert/thumbnail_generator "$filename" "$p_thumb_height" "$p_thumb_cols" "$p_thumb_rows" "/vagrant/cap_gal/$foldername/$mp4fn.jpg" >> /vagrant/logs/thumbnail-generator-log.txt &&
+                sudo cp "/vagrant/cap_gal/$foldername/$mp4fn.jpg" "$save_loc/$mp4fn.jpg" 
+            fi
+        done
     done
 done

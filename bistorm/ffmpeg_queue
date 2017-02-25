@@ -1,0 +1,12 @@
+ # Queue manager for ffmpeg
+pipe=/tmp/ffmpeg
+trap "rm -f $pipe" EXIT
+# creating the FIFO    
+[[ -p $pipe ]] || mkfifo $pipe &> /dev/null
+while true; do
+    # can't just use "while read line" if we 
+    # want this script to continue running.
+    read line < $pipe
+    # we ensure that the command is a ffmpeg one.
+    [[ $line =~ ^ffmpeg ]] && bash <<< "$line"
+done

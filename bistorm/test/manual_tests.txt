@@ -20,6 +20,8 @@ When conversion is completed, does a thumbnail exist in the cap_gal directory?
 
 When conversion is completed, does a thumbnail exist in the profile directory?
 
+When conversion is completed, do input and output meta and info files exist in the profile directory?
+
 
 ## Live RTMP Publishing
 
@@ -29,11 +31,29 @@ When I finish publishing, is a timestamped .mp4 file saved to /convert/video/raw
 
 When I finish publishing, can I see the profile folders actively converting the raw mp4 file?
 
-When I finish publishing and converting, is a converted file saved to /media/Video/Live/$profile?
+When I finish publishing and converting, is a converted file saved to /media/video/live/profile?
 
 When I finish publishing and converting, does a thumbnail exist in the cap_gal directory?
 
-When I finish publishing and converting, does a thumbnail exist /media/Video/Live/$profile?
+When I finish publishing and converting, does a thumbnail exist /media/video/live/profile?
+
+
+## Recording
+
+Are Nginx applications set to record manually?
+
+Is control managed through an HTTP request using the NGINX-RTMP Control Module?
+(Format: http://[SANDY_IP]:9081/control/record/start|stop?app=APP&name=NAME)
+
+Do recordings split into .flv segments in the /vagrant/convert directory?
+
+Do recordings split in the intervals set for each app in nginx.config?
+
+Do recordings include a unique timestamp identifier in the .flv files?
+
+
+
+
 
 
 

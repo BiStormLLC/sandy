@@ -14,6 +14,24 @@ if [ ! -d "$video_dir" ];
      exit 1
 fi
 
+rawurlencode() {
+  local string="${1}"
+  local strlen=${#string}
+  local encoded=""
+  local pos c o
+
+  for (( pos=0 ; pos<strlen ; pos++ )); do
+     c=${string:$pos:1}
+     case "$c" in
+        [-_.~a-zA-Z0-9] ) o="${c}" ;;
+        * )               printf -v o '%%%02x' "'$c"
+     esac
+     encoded+="${o}"
+  done
+  echo "${encoded}"    # You can either set a return variable (FASTER) 
+  REPLY="${encoded}"   #+or echo the result (EASIER)... or both... :p
+}
+
 for d in $video_dir/*; do
 
     # Only process in the profile directory where video files are stored
@@ -25,22 +43,17 @@ for d in $video_dir/*; do
     ## Make file extension listing easier to read
     acc_files=()
     for f in $d/*; do
+        filename=`basename "$f"`
+        f_lower="$(echo $filename | tr [A-Z] [a-z])"
         # Do not check files that contain the profile name
-        if [[ ! -f $f ]] || [[ "$(basename $f)" == *"$(basename $d)"* ]]; then
+        if [[ ! -f $f ]] || [[ "$filename" == *"$(basename $d)"* ]]; then
             continue
         fi
-        f_base="$(basename $f)"
 
-        thl_format=${f_base: -4}
-        tl_format=${f_base: -3}
-        thl_format=${thl_format,,}
-        tl_format=${tl_format,,}
-
-        if [[ $thl_format == ".mov" ]] || [[ $thl_format == ".flv" ]] || [[ $thl_format == ".mpeg" ]] || \
-            [[ $thl_format == ".mp4" ]] || [[ $thl_format == ".mkv" ]] || [[ $thl_format == ".avi" ]] || \
-            [[ $thl_format == ".mts" ]] || [[ $thl_format == ".m4v" ]] || [[ $thl_format == ".mp5" ]] || [[ $tl_format == ".ts" ]]; then
-            file_base="$f_base"
-            acc_files+=($file_base)
+        if [[ ${f_lower: -4} == ".mp4" ]] || [[ ${f_lower: -4} == ".flv" ]] || [[ ${f_lower: -4} == ".mpeg" ]] || \
+            [[ ${f_lower: -4} == ".mp4" ]] || [[ ${f_lower: -4} == ".mkv" ]] || [[ ${f_lower: -4} == ".avi" ]] || \
+            [[ ${f_lower: -4} == ".mts" ]] || [[ ${f_lower: -4} == ".m4v" ]] || [[ ${f_lower: -4} == ".mp5" ]] || [[ ${f_lower: -3} == ".ts" ]]; then
+            acc_files+=("$filename")
         fi
     done
 
@@ -71,16 +84,16 @@ for d in $video_dir/*; do
         echo -e "\nSandy: So, I'm going to encode it now."
 
         # File folder organizer
-        foldername=$(date +"%Y/%m/%d") 
+        foldername=$(date +"%Y/%m/%d")
 
-        # Conversion process: By default, do not demux to separate audio file
-        p_demux=0
+        # Move the original file outside of the profile folder
+        mv "$d/$latest_file_base" "$video_dir/$latest_file_base"
 
-        ## DEFAULT PROFILE
+        ## DEFAULT PROFILE : Profile values are ignored if p_custom_string is not ""
         p_custom_string=""
         p_demux="0"
-        p_vcodec="copy"
-        p_acodec="copy"
+        p_v_codec="copy"
+        p_a_codec="copy"
         p_size_width="1280"
         p_size_height="720"
         p_filter=""
@@ -88,10 +101,16 @@ for d in $video_dir/*; do
         p_preset="ultrafast"
         p_maxrate="2500k"
         p_bufsize="5000k"
+        p_a_bitrate="192k"
         p_g="60"
-        p_profile="baseline"
+        p_v_profile="baseline"
         p_format="mp4"
         p_fileext="mp4"
+        # NOT REQUIRED : set p_thumb_gen to "0" in .profile to ignore thumbnail generation
+        p_thumb_gen="1"
+        p_thumb_height="250"
+        p_thumb_rows="1"
+        p_thumb_cols="100"
 
         echo "Sandy: I am encoding the file $latest_file_base to $d/$original_fn-$uid.$p_fileext ... "
 
@@ -103,49 +122,76 @@ for d in $video_dir/*; do
             echo "Sandy: No .profile file was found for $d, so I'm using my defaults."
         fi
 
+        outputfilename="$original_fn-$uid.$p_fileext"
+        outputfileurl=`rawurlencode "$outputfilename"`
+        outputfile="$d/$outputfileurl"
+
         # Including empty filter will break ffmpeg conversion,
         #  So, we include a rescaler to the entire argument or none at all
         if [ -z "$p_filter+x" ] || [ "$p_filter" == "" ]; then
              p_filter="scale=iw*min($p_size_width/iw\,$p_size_height/ih):ih*min($p_size_width/iw\,$p_size_height/ih), pad=$p_size_width:$p_size_height:($p_size_width-iw*min($p_size_width/iw\,$p_size_height/ih))/2:($p_size_height-ih*min($p_size_width/iw\,$p_size_height/ih))/2"
         fi
 
-        outputfile="$d/$original_fn-$uid.$p_fileext"
+        ## Profile not always required, so we truncate if not used
+        if [ -z "$p_v_profile+x" ] || [ "$p_v_profile" == "" ]; then
+            p_v_profile=""
+        else
+            p_v_profile=" -profile:v $p_v_profile"
+        fi
 
-        if [ "$p_demux" == "0" ]; then
+        ## Preset not always required, so we truncate if not used
+        if [ -z "$p_preset+x" ] || [ "$p_preset" == "" ]; then
+            p_preset=""
+        else
+            p_preset=" -preset $p_preset"
+        fi
+
+        # Copy metadata 
+        /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" -f ffmetadata "$d/$latest_file_base-input-$uid-metadata.txt"
+
+        # Copy show info
+        /usr/local/bin/ffprobe -show_format -show_streams "$video_dir/$latest_file_base" > "$d/$latest_file_base-input-$uid-info.txt"
+
+        ## Concatenated string of all of our profile settings
+        ffmpeg_string=" -vcodec $p_v_codec -tune $p_tune -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -crf $p_crf$p_v_profile$p_preset-maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"  
+
+        ffmpeg_queue > /dev/null
+
+        if [ -z "$p_demux+x" ] || [ "$p_demux" == "0" ]; then
             # Convert file in working/profile directory
-            if [ "$p_custom_string" == "" ]; then 
-                ffmpeg -y -i "$d/$latest_file_base" -vcodec "$p_vcodec" -acodec "$p_acodec" -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$outputfile" > /vagrant/logs/init_video_profile_conversion-ffmpeg-log.txt 2>&1 & 
+            if [ "$p_custom_string" == "" ]; then
+                /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" "$ffmpeg_string" "$outputfile" > /tmp/ffmpeg 2>/vagrant/logs/ffmpeg_video_$uid-log.txt
             else
-                eval ffmpeg -y -i "$d/$latest_file_base" $p_custom_string "$outputfile" > /vagrant/logs/init_video_profile_conversion-ffmpeg-log.txt 2>&1 &
+                eval /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" "$p_custom_string" "$outputfile" > /tmp/ffmpeg 2>/tmp/ffmpeg 2>/vagrant/logs/ffmpeg_video_$uid-log.txt
             fi   
         else 
             # Create demuxed directories in working directory
             mkdir -p "$d/audio"
             # Copy into the audio and video folders
             if [ "$p_custom_string" == "" ]; then 
-                ffmpeg -y -vn -i "$d/$latest_file_base" -acodec copy "$d/audio/$original_fn-$uid.aac" > /vagrant/logs/init_video_profile_conversion-audio-ffmpeg-log.txt 2>&1 &
-                ffmpeg -y -i "$d/$latest_file_base" -vcodec "$p_vcodec" -vf "$p_filter" -crf "$p_crf" -profile:v "$p_profile" -preset "$p_preset" -maxrate "$p_maxrate" -bufsize "$p_bufsize" -g "$p_g" -f "$p_format" "$output_file" > /vagrant/logs/init_video_profile_conversion-video-ffmpeg-log.txt  2>&1 &
+                /usr/local/bin/ffmpeg -y -vn -i "$video_dir/$latest_file_base" -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$d/audio/$original_fn-$uid.aac" 
+                /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" $ffmpeg_string "$output_file" > /tmp/ffmpeg 2>/tmp/ffmpeg 2>/vagrant/logs/ffmpeg_video_$uid-log.txt
             else  
-                ffmpeg -y -vn -i "$d/$latest_file_base" -acodec copy "$d/audio/$original_fn-$uid.aac" > /vagrant/logs/init_video_profile_conversion-audio-ffmpeg-log.txt 2>&1 &
-                eval ffmpeg -y -i "$d/$latest_file_base" -an $p_custom_string "$outputfile" > /vagrant/logs/init_video_profile_conversion-video-ffmpeg-log.txt 2>&1 &
+                /usr/local/bin/ffmpeg -y -vn -i "$video_dir/$latest_file_base" -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$d/audio/$original_fn-$uid.aac" 
+                eval /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" -an $p_custom_string "$outputfile" > /tmp/ffmpeg 2>/vagrant/logs/ffmpeg_video_$uid-log.txt
             fi
         fi
 
         if [ -f "$outputfile" ]; then
-            # Move the original file outside of the profile folder
-            sudo mv "$d/$latest_file_base" "$video_dir/$latest_file_base"
 
-            # Create preview image and dump converted file to the capture gallery folder
-            #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
-            mkdir -p "/vagrant/cap_gal/$foldername"
-            /vagrant/bistorm/convert/thumbnail_generator "$outputfile" 300 8 6 "/vagrant/cap_gal/$foldername/$original_fn-$uid.jpg" &&
-            sudo cp "/vagrant/cap_gal/$foldername/$original_fn-$uid.jpg" "$d/" 2>> /vagrant/logs/thumbnail_generator-log.txt
+            if [ ! "$p_thumb_gen" == "0" ]; then
+                # Create preview image and dump converted file to the capture gallery folder
+                #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
+                mkdir -p "/vagrant/cap_gal/$foldername"
+                /vagrant/bistorm/convert/thumbnail_generator "$outputfile" "$p_thumb_height" "$p_thumb_cols" "$p_thumb_rows" "/vagrant/cap_gal/$foldername/$original_fn.jpg" >> /vagrant/logs/thumbnail_generator-log.txt
+                cp "/vagrant/cap_gal/$foldername/$original_fn-$uid.jpg" "$d/"
+            fi
 
             # Log the profile conversion activity
-            echo "Sandy: $d/$original_fn-$uid.$p_fileext has completed converting and has been logged." 
-            echo -e "$outputfile\n" >> "/vagrant/logs/profile-$uid-conversions-log.txt"
-        fi
+            echo -e "Sandy: $outputfile has initiated conversion and has been logged.\n" 
+            echo -e "$outputfile\n" >> "/vagrant/logs/profile-video-$uid-conversions-log.txt"
 
+        fi
     done
 done
 exit 0

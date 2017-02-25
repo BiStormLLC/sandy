@@ -1,0 +1,136 @@
+#!/bin/bash
+#
+# Description: Takes a raw folder .aac file and converts it to different 
+#  stream-ready bitrates using conversion profile folders
+#
+raw_dir_a="$1"
+media_dir="$2"
+
+if [ ! -d $raw_dir_a ]; 
+    then
+      echo "Sandy: Please pass me the directory where raw .aac files are stored."
+      echo "exited with error"
+      exit 1
+fi
+
+if [ ! -d $media_dir ]; 
+    then
+      echo "Sandy: Please pass me a directory where converted files will be stored."
+      echo "exited with error"
+      exit 1
+fi
+
+parentdir="$(dirname $raw_dir_a)"
+
+# Wait until raw video directory receives a new file
+inotifywait -qmre close_write --format "%w%f" "$raw_dir_a" | while read filename; 
+do
+    latest_stream_base=$(basename $filename)
+
+    # Ensure that we are converting an .aac file
+    if [ ! ${filename: -4} == ".aac" ]; then
+        echo "Sandy: What magic do you believe me capable of performing, here?"
+        echo "Sandy: The most recent raw file added was not an .aac"
+        echo "exited with error"
+        exit 1
+    fi
+
+    # Generate filename before .aac
+    aacfn=$(echo $latest_stream_base | cut -f 1 -d '.')
+    stringcreated=$(echo $aacfn | cut -f 2 -d '-')
+    datecreated=$(date --d @$stringcreated +"%D")
+
+    # Ensure that the file contains a valid timestamp
+    val_date=$(date -d $datecreated)
+    if [ -z "$val_date" ] || [ "$val_date" == "" ]; then
+        echo "Sandy: This file will not be converted."
+        echo "Sandy: It needs to end in '-[UNIX_DATE]' format to continue."
+        echo "exited with error"
+        exit 1
+    fi
+
+    # File folder organizer
+    foldername=$(date --date @$stringcreated +"%Y/%m/%d")
+
+    # Loop through each profile directory and use as a working directory
+    #  Then output to the appropriate media vod folder
+    for d in $parentdir/*; do
+
+        # Profile directory name
+        profile=$(basename $d)
+
+        # Leave if we're not in a dir or if we're in the raw directory
+        if [ ! -d "$d" ] || [ "$profile" == "raw" ]; then
+            continue
+        fi
+
+        # Also, leave if the file added contains the profile name, because those are
+        #  considered completed jobs
+        if [ "$latest_stream_base" == *"$profile"* ]; then
+            continue
+        fi   
+        
+        ## DEFAULT PROFILE
+        p_custom_string=""
+        p_a_codec="mp3"
+        p_a_rate="44100"
+        p_jointstereo="1"
+        p_a_channels="2"
+        p_a_bitrate="128k"
+        p_format="mp3"
+        p_fileext="mp3"
+
+        echo "Sandy: I am encoding the raw $latest_stream_base to $media_dir/audio/live/$profile/$foldername/$aacfn.$p_fileext ... "
+     
+        $save_loc="$media_dir/audio/live/$profile/$foldername"
+        outputfile="$save_loc/$aacfn.$p_fileext"
+        
+        # Import ffmpeg profile variables for this folder
+        if [ -f "$d/.profile" ]; then
+            source "$d/.profile"
+            export $(cut -d= -f1 "$d/.profile")
+        else
+            echo "Sandy: No .profile file was found for $d, so I'm using my defaults."
+        fi
+
+        ## Concatenated string of all of our profile settings
+        ffmpeg_string=" -acodec $p_a_codec -vn -ar $p_a_rate -ar $p_a_rate -ac $p_a_channels -b:a $p_a_bitrate -f $p_format -joint_stereo $p_jointstereo"      
+
+        ffmpeg_queue > /dev/null
+
+        # Convert file in working/profile directory
+        if [ "$p_custom_string" == "" ]; then 
+            /usr/local/bin/ffmpeg -y -i $filename -vn $ffmpeg_string "$d/$aacfn-$profile.$p_fileext" > /tmp/ffmpeg 2>/vagrant/logs/ffmpeg_audio_$profile-log.txt
+            # Create location to store video
+            mkdir -p "$save_loc"
+            # Copy completed file to media directory
+            mv "$d/$aacfn-$profile.$p_fileext" "$outputfile"
+            echo -e "Sandy: $outputfile has initiated conversion and has been logged.\n"
+            echo -e "$outputfile\n" >> "/vagrant/logs/profile-audio-$profile-conversions-log.txt" 
+        else
+            /usr/local/bin/ffmpeg -y -i $filename -vn $p_custom_string "$d/$aacfn-$profile.$p_fileext" > /tmp/ffmpeg 2>/vagrant/logs/ffmpeg_audio_$profile-log.txt
+            # Create location to store video
+            mkdir -p "$save_loc"
+            # Copy completed file to media directory
+            mv "$d/$aacfn-$profile.$p_fileext" "$outputfile"
+            echo -e "Sandy: $outputfile has initiated conversion and has been logged.\n"
+            echo -e "$outputfile\n" >> "/vagrant/logs/profile-audio-$profile-conversions-log.txt"
+        fi
+
+        if [ -f "$outputfile" ]; then
+            # Copy out metadata 
+            /usr/local/bin/ffmpeg -y -i $outputfile -f ffmetadata "$media_dir/video/live/$profile/$foldername/$aacfn-output-$profile-metadata.txt" > /dev/null
+
+            # Copy out info
+            /usr/local/bin/ffprobe -show_format -show_streams $outputfile > "$media_dir/video/live/$profile/$foldername/$aacfn-output-$profile-info.txt"
+
+             if [ ! "$p_thumb_gen" == "0" ]; then
+                # Create preview image and dump converted file to the capture gallery folder
+                #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
+                mkdir -p "/vagrant/cap_gal/$foldername"
+                /vagrant/bistorm/convert/thumbnail_generator "$outputfile" "$p_thumb_height" "$p_thumb_cols" "$p_thumb_rows" "/vagrant/cap_gal/$foldername/$aacfn.jpg" >> /vagrant/logs/thumbnail-generator-log.txt &&
+                sudo cp "/vagrant/cap_gal/$foldername/$aacfn.jpg" "$save_loc/$aacfn.jpg" 
+            fi
+        fi
+    done
+done

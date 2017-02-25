@@ -51,10 +51,11 @@ Vagrant.configure("2") do |config|
     config.vm.network "public_network", :bridge => 'eth0', :use_dhcp_assigned_default_route => false
     config.vm.network "private_network", ip: "192.168.33.10"
 
-    # 2 GB memory.
+    # 2 GB memory or higher is recommended.
+    # Typcally 1/2 of your CPU cores is a good tradeoff for background transcoding
     config.vm.provider :virtualbox do |v|
-      v.customize ["modifyvm", :id, "--memory", 4096]
-      v.customize ["modifyvm", :id, "--cpus", 2]
+      v.customize ["modifyvm", :id, "--memory", 2048]
+      v.customize ["modifyvm", :id, "--cpus", 4]
       v.customize ["modifyvm", :id, "--cpuexecutioncap", "97"]
     end
     
@@ -66,11 +67,11 @@ Vagrant.configure("2") do |config|
     config.vm.synced_folder "./cap_gal", "/var/www/public/capture-gallery", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
 
     #  VOD/Media Library *Option 1*: Store your media in the working directory of #ProjectSandy
-    config.vm.synced_folder "./media", "/var/www/public/vod", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
+    #config.vm.synced_folder "./media", "/var/www/public/vod", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
     
     #  VOD/Media Library *Option 2*: Store your media in another location: this can be a NAS
     #  as long as you have created a virtual path to it on your host.
-    #config.vm.synced_folder "A:\Media", "/var/www/public/vod", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
+    config.vm.synced_folder "A:/Media/Sandy", "/var/www/public/vod", owner: "vagrant", group: "www-data", :nfs => { :mount_options => ["dmode=777", "fmode=666"] }
 
     #config.vm.synced_folder "./react-app", "/var/www/public/ux", owner: "vagrant", group: "www-data",  :mount_options => ["dmode=777", "fmode=666"] 
     #config.vm.synced_folder "./bistorm", "/usr/local/bin/bistorm", owner: "vagrant", group: "root",  :mount_options => ["dmode=777", "fmode=666"] 

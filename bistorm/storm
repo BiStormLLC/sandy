@@ -5,26 +5,29 @@
 #   This is primarily so that our devs don't write 'test code' in prod files.
 #
 
+
 # Export Server IP address to sandy_ip var file
 export_head='#!/bin/bash'
 export_content="SANDYIP="
 export_ip=$(ifconfig eth1 | awk '/inet addr/{print substr($2,6)}')
-export_footer='export sandy_ip=$SANDYIP'
-echo -e "$export_head \n$export_content\"$export_ip\" \n$export_footer" > /vagrant/bistorm/vars/sandy_ip
+export_footer='export SANDY_IP=$SANDYIP; echo "Sandy: Thanks for letting me in!  My guest IP is @$SANDY_IP"'
+echo -e "$export_head \n$export_content\"$export_ip\"\n$export_footer;" > /vagrant/bistorm/vars/sandy_ip
 
 # Get the HDHomeRunPrime IP address and set it in the prime_ip var file
 export_content="PRIMEIP="
 export_ip=$(hdhomerun_config discover | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b")
-export_footer='export prime_ip=$PRIMEIP'
-echo -e "$export_head \n$export_content\"$export_ip\" \n$export_footer" > /vagrant/bistorm/vars/prime_ip
+if [ ! -z "$export_ip" ] && [ ! "$export_ip" == "" ]; then
+    export_footer='export PRIME_IP=$PRIMEIP; echo "Sandy: Watch a lot of television? That is OK, so do I.  Your HDHomerun device IP is: $PRIME_IP"'
+    echo -e "$export_head \n$export_content\"$export_ip\"\n$export_footer;" > /vagrant/bistorm/vars/prime_ip
+fi
 
 # Initiate MediaTomb UPnP server
 echo "Sandy: Did you know that you can access your media files on port 5555?"
 sudo cp /vagrant/bistorm/conf/mediatomb_config.xml /etc/mediatomb/config.xml
 sudo mediatomb -e eth1 -p 5555 -m /vagrant/media/ -c /etc/mediatomb/config.xml > /dev/null &
 
-# Reset streams on first run
-/vagrant/bistorm/ffmpeg_kill "/var/www/hls" > /vagrant/logs/ffmpeg_kill-log.txt 
+# Live storm events are like this: death, hills and dashing
+/vagrant/bistorm/ffmpeg_kill "/var/www/hls" "/var/www/dash" > /vagrant/logs/ffmpeg_kill-log.txt 
 
 # Copy conf files to nginx and apache2 folders and then restart services
 ## Nginx
@@ -38,9 +41,13 @@ sudo cp /vagrant/bistorm/conf/ports.conf /etc/apache2/ports.conf
 sudo a2ensite sandy.local > /dev/null &
 sudo service apache2 restart > /dev/null &
 
+if [ -d "/var/www/public/vod" ]; then
+    mkdir -p "/var/www/public/vod/video/live" "/var/www/public/vod/audio/live"
+fi
+
 echo "Sandy: I am initiating listeners for auto-conversion of live feeds."
-echo "These listeners will continue, causing this script to never exit."
-/vagrant/bistorm/convert/raw_mp4_to_vod "/vagrant/convert/video/raw" "/vagrant/convert/audio/raw" "/vagrant/media/Video/Live" >> /vagrant/logs/raw_mp4_to_vod-log.txt &
+/vagrant/bistorm/convert/raw_mp4_to_vod "/vagrant/convert/video/raw" "/var/www/public/vod" > /vagrant/logs/raw_mp4_to_vod-log.txt &
+/vagrant/bistorm/convert/raw_aac_to_vod "/vagrant/convert/audio/raw" "/var/www/public/vod" > /vagrant/logs/raw_aac_to_vod-log.txt &
 
 #################################
 #Sandbox (Runs on boot and keeps going unless 'sudo killall storm' is run)

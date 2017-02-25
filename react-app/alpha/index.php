@@ -13,7 +13,7 @@
     /*******
      * Page Vars (currently global)
      */
-    $localIP = $_SERVER['SERVER_ADDR'];
+    $localIP = trim(getSandyIp());
     $channel_url = "";
     $app_stream = "";
     $hls_dir = "";
@@ -39,7 +39,7 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title>BiStorm #ProjectSandy vCumulus 0.4.</title>
+        <title>BiStorm #ProjectSandy vCumulus 0.4.X</title>
         <meta name="description" content="Peer2Peer, Biz2Biz, Oh what a relief IT is.">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-icon.png" />
@@ -51,20 +51,26 @@
             <!--
             // TODO: This is a fix to get the channel activated.  
             // Will improve upon it soon.
-            
+       
             var app_stream = "<?php echo $app_stream ?>";
- 
+
             $(document).ready(function () {
-                if(app_stream == 'tv') {
+                if(app_stream == 'tv') {                   
                     jQuery.ajax({
-                        'url': '<?php print $channel_url ?>',
-                        'complete': function(xhr, status){},
-                        'error': function(xhr, status, e){
-                            if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG.");
+                        'url': 'http://<?php print $localIP ?>:9082/action/stop',
+                        'complete': function(xhr, status){
+                            jQuery.ajax({
+                            'url': '<?php print $channel_url ?>',
+                            'complete': function(xhr, status){},
+                            'error': function(xhr, status, e){
+                                if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG.");
+                            }
+                        });
                         }
                     });
+                    
                 }
-            });
+            }); 
            -->
         </script>
     </head>
@@ -83,7 +89,7 @@
                 <div id="stream" width="100%" height="auto">				
                     <!-- for live streaming source -->
                     <video width="100%" height="95%" controls>
-                        <src="http://<?php print $localIP ?>:9081/dash<?php print $app_name ?>/<?php print getChannel()?>/index.mpd" type="application/x-mpegurl">
+                        <src="http://<?php print $localIP ?>:9081/hls<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8" type="application/x-mpegurl">
                     </video> 
                 </div>
             </div>
@@ -126,7 +132,7 @@
                 }],
                 <?php # }  ?>
                 width: "100%",
-                aspectratio: "16:9",
+                mute: true
             });
         </script>
 

@@ -4,7 +4,8 @@
 #  to the convert/raw directory 
 #
 stream="$1"
-copyto="$2"
+copyto_v="$2"
+copyto_a="$3"
 echo "Sandy: I received a request to process $stream ..."
 if [ ! -f $stream ] || [ ! ${stream: -4} == ".flv" ]; 
   then
@@ -12,14 +13,18 @@ if [ ! -f $stream ] || [ ! ${stream: -4} == ".flv" ];
     echo "exited with error"
     exit 1
 fi
-if [ ! -d $copyto ]; 
+if [ ! -d $copyto_v ]; 
     then
       echo "Sandy: Please pass me a directory to save the .mp4 into"
       echo "exited with error"
       exit 1
 fi
-
-echo "Sandy: I am encapsulating the current stream $stream to $copyto/$mp4fn.mp4 ... "
+if [ ! -d $copyto_a ]; 
+    then
+      echo "Sandy: Please pass me a directory to save the .aac into"
+      echo "exited with error"
+      exit 1
+fi
 
 # Get filename before .flv
 suffix=$(date +%s)
@@ -29,15 +34,20 @@ mp4fn=$(echo "$mp4fn-$suffix")
 
 # Folder organizer
 foldername=$(date +%Y/%m/%d)
-mkdir -p "$copyto/$foldername"
+mkdir -p "$copyto_v/$foldername"
+mkdir -p "$copyto_a/$foldername"
 
-# Create .mp4 and dump to $copyto folder
-ffmpeg -i $stream -vcodec copy -acodec copy "$copyto/$foldername/$mp4fn.mp4" 2> /dev/null
+echo "Sandy: I am encapsulating the current stream $stream to $copyto_v/$mp4fn.mp4 and $copyto_v/$mp4fn.aac ... "
 
-# Clean the conversion root directory
+# Create demuxed .mp4, subs and audio, dump to $copyto folder 
+ffmpeg -i $stream -vcodec copy -acodec copy "$copyto_v/$foldername/$mp4fn.mp4" 2>&1
+ffmpeg -i $stream -map 0:s:0 "$copyto_v/$foldername/$mp4fn.srt" 2>&1
+ffmpeg -i $stream -vn -acodec copy "$copyto_a/$foldername/$mp4fn.aac" 2>&1 
+
+# Clean the conversion root directory of .flv files dumped by Nginx-RTMP module
 find /vagrant/convert/video/ -maxdepth 1 -type f -name "*.flv" -delete
 
-# Nginx RTMP module should clean these for us, but this ensures it's 
+# Nginx-RTMP module should clean these for us, but this ensures it's 
 #  all wiped clean after each time we finish publishing
 sudo rm -rf "/var/www/hls/c/*"
 sudo rm -rf "/var/www/hls/d/*"

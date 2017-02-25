@@ -5,7 +5,7 @@
 #
 warning=0
 
-echo "Sandy: My daemon script ffmpeg-kill is running ..."
+echo "Sandy: My script ffmpeg-kill is running ..."
 if [ $# -eq 0 ]
   then
     echo "Sandy: Please pass me directories to cleanse, like: 'ffmpeg_kill /var/www/public/hlsc /var/www/public/hlsd'"
@@ -21,7 +21,7 @@ count=`ps aux | grep -v "grep" | grep -c ffmpeg`
 if [ "${count}" -le 3 ]; then
     echo "Sandy: I wasn't running any conversions. #JustSoYouKnow"
 else
-    sudo killall ffmpeg
+    sudo killall ffmpeg &&
     echo "Sandy: My ffmpeg processes have been halted."
 fi
 
@@ -29,15 +29,17 @@ fi
 rtmp_guest_active=$(netstat -n | grep :1935 | grep ESTABLISHED )
 rtmp_host_active=$(netstat -n | grep :1901 | grep ESTABLISHED )
 if [ ! -z "$rtmp_guest_active" ] || [ ! -z "$rtmp_host_active" ]; then
-    sudo nginx -s stop
-    sudo nginx -s start
+    sudo killall nginx
+    sudo nginx &&
     echo "Sandy: My RTMP server has been restarted."
+else 
+    warning=1
 fi
 
 #Iterate through all directories passed in
 for var in "$@"
 do
-    [ ! -d $var ] && echo "Sandy: $var ? That's no directory, buster." && warning=1 && break
+    [ ! -d $var ] && echo "Sandy: $var ? That's no directory, buster." && $warning="$warning+1" && break
     [ -d $var ] && echo "Sandy: I'm emptying the streaming contents for $var ... "
     find $var -name "*.ts" -type f -delete
     find $var -name "*.m3u8" -type f -delete

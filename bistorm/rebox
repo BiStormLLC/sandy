@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+# Description: 
+#  !!! WARNING !!!
+#  This file removes all working files in .profile folders and ALL VOD files!
+#  You could potentially lose some important personal files if you run this script.
+#  This prepares the VirtualBox environment for distribution
+#  !!! /WARNING !!!
+#
+
+sudo killall nginx
+# Try ending ffmpeg twice, in case it tries to restart itself
+sudo killall ffmpeg
+sudo killall ffmpeg
+
+# Files that didn't finish converting
+cd /vagrant/convert/audio
+sudo rm -rf *.*
+sudo rm -rf ./raw/* > /dev/null
+cd /vagrant/convert/video
+sudo rm -rf *.*
+sudo rm -rf ./raw/* > /dev/null
+
+# Logs
+cd /vagrant/logs
+sudo rm -rf * > /dev/null
+
+# cap_gal
+cd /var/www/public/capture-gallery
+sudo rm -rf *.* > /dev/null
+
+# HTTP MPEG Directories
+cd /var/www/hls/c
+sudo rm -rf *
+cd ../d
+sudo rm -rf *
+cd ../z
+sudo rm -rf *
+cd /var/www/dash/c
+sudo rm -rf *
+cd ../d
+sudo rm -rf *
+cd ../z
+sudo rm -rf *
+
+# Stored Media Directories
+if [ -d "/var/www/public/vod/audio" ]; then
+    cd /var/www/public/vod/audio
+    sudo rm -rf * > /dev/null
+fi
+if [ -d "/var/www/public/vod/video" ]; then
+    cd /var/www/public/vod/video
+    sudo rm -rf * > /dev/null
+fi
+
+# Vars
+cd /vagrant/bistorm/vars
+sudo rm -rf *
+
+#echo "Sandi: Please wait ... I am zeroing out the drive."
+#sudo apt-get clean
+#sudo dd if=/dev/zero of=/EMPTY bs=1M
+#sudo rm -f /EMPTY
+
+#cat /dev/null > ~/.bash_history && history -c && exit

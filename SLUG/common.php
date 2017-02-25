@@ -4,6 +4,12 @@ function cleanForUrl($text) {
     return preg_replace('[^a-z^A-Z^0-9^-]', "-", $text);
 }
 
+function getSandyIp() {
+    $output = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
+    $ip = substr($output, strpos($output, "@") + 1);    
+    return $ip;
+}
+
 function getChannel() {
     $url = cleanForUrl($_SERVER['REQUEST_URI']); //returns the current URL
     $parts = explode('/',$url);
@@ -13,6 +19,9 @@ function getChannel() {
         $dir .= $parts[$i] . "/";
     }
 
+    # TODO: This block will be more fleshed out later
+    #   The intent is to ensure string quality of the url upon entry to the page
+    #   (Security: Avoiding string injections)
     if ($pos = strpos($url, 'c/') !== false) {
         $hd_ch = substr($url, $pos);
         $hd_ch = trim($hd_ch, 'c/');

@@ -1,0 +1,119 @@
+#!/bin/bash
+
+# Bash script to install latest version of ffmpeg and its dependencies on Ubuntu 12.04 or 14.04
+# FFMPEG Compilation Guide: https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu
+
+# Remove any existing packages and installed files:
+rm -rf ~/ffmpeg_build ~/ffmpeg_sources ~/bin/{ffmpeg,ffprobe,ffplay,ffserver,vsyasm,x264,x265,yasm,ytasm}
+sudo apt-get autoremove autoconf automake build-essential cmake libass-dev libfreetype6-dev \
+  libmp3lame-dev libopus-dev libsdl2-dev libtheora-dev libtool libva-dev libvdpau-dev \
+  libvorbis-dev libvpx-dev libx264-dev libxcb1-dev libxcb-shm0-dev ibxcb-xfixes0-dev mercurial texinfo zlib1g-dev
+sed -i '/ffmpeg_build/c\' ~/.manpath
+hash -r
+
+# Get the dependencies (Ubuntu Server or headless users):
+sudo apt-get update
+sudo apt-get -y install build-essential checkinstall git libfaac-dev libgpac-dev \
+  libmp3lame-dev libass-dev libfreetype6-dev libsdl2-dev libopencore-amrnb-dev libopencore-amrwb-dev librtmp-dev libtheora-dev \
+    libtool libva-dev libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev pkg-config texinfo zlib1g-dev pkg-config texi2html yasm zlib1g-dev
+
+mkdir ~/ffmpeg_sources
+
+# Install Yasm
+cd ~/ffmpeg_sources
+wget http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz
+tar xzvf yasm-1.3.0.tar.gz
+cd yasm-1.3.0
+./configure --prefix="$HOME/ffmpeg_build" --bindir="/usr/local/bin"
+make
+make install
+
+# Install x264
+cd ~/ffmpeg_sources
+wget http://download.videolan.org/pub/x264/snapshots/last_x264.tar.bz2
+tar xjvf last_x264.tar.bz2
+cd x264-snapshot*
+PATH="/usr/local/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="/usr/local/bin" --enable-static --disable-opencl
+PATH="/usr/local/bin:$PATH" make
+make install
+
+# Install x265
+sudo apt-get install cmake mercurial
+cd ~/ffmpeg_sources
+hg clone https://bitbucket.org/multicoreware/x265
+cd ~/ffmpeg_sources/x265/build/linux
+PATH="/usr/local/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DENABLE_SHARED:bool=off ../../source
+make
+make install
+
+# Install AAC audio decoder
+cd ~/ffmpeg_sources
+wget -O fdk-aac.tar.gz https://github.com/mstorsjo/fdk-aac/tarball/master
+tar xzvf fdk-aac.tar.gz
+cd mstorsjo-fdk-aac*
+autoreconf -fiv
+./configure --prefix="$HOME/ffmpeg_build" --disable-shared
+make
+make install
+
+# Install Lame audio decoder
+sudo apt-get install nasm
+cd ~/ffmpeg_sources
+wget http://downloads.sourceforge.net/project/lame/lame/3.99/lame-3.99.5.tar.gz
+tar xzvf lame-3.99.5.tar.gz
+cd lame-3.99.5
+./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --disable-shared
+make
+make install
+
+# Install Libopus audio decoder
+cd ~/ffmpeg_sources
+wget http://downloads.xiph.org/releases/opus/opus-1.1.4.tar.gz
+tar xzvf opus-1.1.4.tar.gz
+cd opus-1.1.4
+./configure --prefix="$HOME/ffmpeg_build" --disable-shared
+make
+make install
+
+# Install VPX video encoder and decoder
+cd ~/ffmpeg_sources
+wget http://storage.googleapis.com/downloads.webmproject.org/releases/webm/libvpx-1.6.1.tar.bz2
+tar xjvf libvpx-1.6.1.tar.bz2
+cd libvpx-1.6.1
+PATH="/usr/local/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --disable-examples --disable-unit-tests
+PATH="/usr/local/bin:$PATH" make
+make install
+
+# Optional: install qt-faststart
+# This is a useful tool if you're showing your H.264 in MP4 videos on the web. It relocates some data in the video to allow playback to begin before the file is completely downloaded. Usage: qt-faststart input.mp4 output.mp4.
+cd ~/ffmpeg_sources
+wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2
+tar xjvf ffmpeg-snapshot.tar.bz2
+cd ffmpeg
+PATH="/usr/local/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
+  --prefix="$HOME/ffmpeg_build" \
+  --pkg-config-flags="--static" \
+  --extra-cflags="-I$HOME/ffmpeg_build/include" \
+  --extra-ldflags="-L$HOME/ffmpeg_build/lib" \
+  --bindir="/usr/local/bin" \
+  --enable-gpl \
+  --enable-libass \
+  --enable-libfdk-aac \
+  --enable-libfreetype \
+  --enable-libmp3lame \
+  --enable-libopus \
+  --enable-libtheora \
+  --enable-libvorbis \
+  --enable-libvpx \
+  --enable-libx264 \
+  --enable-libx265 \
+  --enable-nonfree
+PATH="/usr/local/bin:$PATH" make
+make install
+hash -r
+
+# Optional: install qt-faststart
+# This is a useful tool if you're showing your H.264 in MP4 videos on the web. It relocates some data in the video to allow playback to begin before the file is completely downloaded. Usage: qt-faststart input.mp4 output.mp4.
+cd ~/ffmpeg_sources/ffmpeg/tools
+make qt-faststart
+cp qt-faststart /usr/local/bin/
