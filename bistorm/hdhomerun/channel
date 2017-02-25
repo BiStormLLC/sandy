@@ -42,7 +42,7 @@ else
 fi
 
 ## Concatenated string of all of our profile settings
-ffmpeg_string=" -s 960x540 -vcodec $p_v_codec -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -profile:v $p_v_profile -crf $p_crf -preset $p_preset -maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"  
+ffmpeg_string=" -s 960x490 -vcodec $p_v_codec -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -profile:v $p_v_profile -crf $p_crf -preset $p_preset -maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"  
 /usr/local/bin/ffmpeg -y -i "http://$PRIME_IP:5004/auto/v$1?$p_homerun_custom_q" $ffmpeg_string "rtmp://localhost/c/$1" >/dev/null 
 echo -e "\nSandy: ffmpeg is running!  Do you see a stream?" 
 

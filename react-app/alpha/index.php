@@ -28,7 +28,10 @@
     } else if (strpos($_SERVER['REQUEST_URI'], '/z/') !== false) {
         $app_stream = getChannel();
         $app_name = "z"; 
-    }  
+    }
+    
+    record('start',$app_name, getChannel(), '15s');
+
 ?>
 
 <!doctype html>
@@ -61,7 +64,15 @@
                         'complete': function(xhr, status){
                             jQuery.ajax({
                             'url': '<?php print $channel_url ?>',
-                            'complete': function(xhr, status){},
+                            'complete': function(xhr, status){
+                                jQuery.ajax({
+                                'url': 'http://<?php print $localIP ?>:9081/control/record/start?app=c&name=<?php print getChannel() ?>&rec=15s',
+                                'complete': function(xhr, status){},
+                                'error': function(xhr, status, e){
+                                    if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG.");
+                                }
+                                });
+                            },
                             'error': function(xhr, status, e){
                                 if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG.");
                             }
