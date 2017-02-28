@@ -1,0 +1,56 @@
+#!/bin/bash
+#
+# FILE: install_vpn_and_dns 
+# DESCRIPTION: Installs VPN and DNS configurations for Sandy Box
+##
+
+# Configuration for openvpn is provided by fork of openvpn, 
+# OpenVPN-install: https://github.com/Angristan/OpenVPN-install
+#  *This fork is more secure
+
+sudo mkdir -p /var/cache/bind
+
+#sudo apt-get update
+#udo apt-get upgrade
+#sudo apt-get autoremove
+
+#cd ~/
+#wget https://raw.githubusercontent.com/Angristan/OpenVPN-install/master/openvpn-install.sh
+#sudo chmod +x openvpn-install.sh
+#sudo ./openvpn-install.sh
+
+# DNS
+source /vagrant/bistorm/vars/sandy_ip >/dev/null
+IN="$SANDY_IP"
+arrIN=(${IN//./ })
+subnet="${arrIN[0]}.${arrIN[1]}";
+reverse_zone="${arrIN[2]}.${arrIN[1]}.${arrIN[0]}.in-addr.arpa"
+first="${arrIN[0]}"
+last="${arrIN[3]}"
+sudo apt-get install bind9 bind9utils bind9-doc
+
+# Create Forward Zone Files
+sudo mkdir -p /etc/bind/zones
+
+sudo cp /vagrant/bistorm/conf/named.conf.options /etc/bind/named.conf.options
+sudo sed -i "s/%%SANDY_IP%%/$SANDY_IP/g" "/etc/bind/named.conf.options"
+
+sudo cp /vagrant/bistorm/conf/named.conf.local /etc/bind/named.conf.local
+sudo sed -i "s/%%FIRST_SET%%/$first/g" "/etc/bind/named.conf.local"
+
+sudo cp /vagrant/bistorm/conf/db.bistorm.local /etc/bind/zones/db.bistorm.local
+sudo sed -i "s/%%SANDY_IP%%/$SANDY_IP/g" "/etc/bind/zones/db.bistorm.local"
+
+sudo cp /vagrant/bistorm/conf/db.bistorm.us /etc/bind/zones/db.bistorm.us
+sudo sed -i "s/%%SANDY_IP%%/$SANDY_IP/g" "/etc/bind/zones/db.bistorm.us"
+
+sudo cp /vagrant/bistorm/conf/db.192 /etc/bind/zones/db.192
+sudo sed -i "s/%%LAST_D%%/$last/g" "/etc/bind/zones/db.192"
+
+# Modify zones
+sudo named-checkconf && sudo service bind9 start
+
+exit
+
+
+

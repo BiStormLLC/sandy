@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Bash script to install latest version of nginx and RTMP module dependencies on Ubuntu 12.04 or 14.04
+# https://docs.peer5.com/guides/setting-up-hls-live-streaming-server-using-nginx/
+
+# Update
+sudo apt-get update
+
+# RTMP Module
+git clone https://github.com/sergey-dryabzhinsky/nginx-rtmp-module.git
+
+# Traffic limiter for the bottleneckers 
+git clone https://github.com/nginx-modules/Nginx-limit-traffic-rate-module.git
+
+# Dependencies 
+sudo apt-get install build-essential libpcre3 libpcre3-dev libssl-dev 
+
+# Download nginx
+wget http://nginx.org/download/nginx-1.10.3.tar.gz
+tar -xf nginx-1.10.3.tar.gz
+cd nginx-1.10.3
+
+# Compile nginx
+./configure --with-http_ssl_module --add-module=../nginx-rtmp-module 
+make -j 4 
+sudo make install
+
+source /vagrant/bistorm/vars/sandy_ip
+
+sed -e "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/bistorm/conf/nginx.conf" > ~/nginx.tmp.conf &&
+sudo cp ~/nginx.tmp.conf /usr/local/nginx/conf/nginx.conf && rm ~/nginx.tmp.conf
+
+sudo nginx -t && sudo nginx

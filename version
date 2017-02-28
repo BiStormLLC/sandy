@@ -1,0 +1,3 @@
+#!/bin/bash
+sandy_server_version="0.4.5"
+export SANDY_VER=sandy_server_version

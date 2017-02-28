@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Description: storm is initiated after Sandy has booted. It has two use cases:
+#   * crontab runs storm on reboot to re-provision some services
+#     OR you can run storm after editing a bistorm/conf file to re-add it into the guest machine
+#   * It is also a testbed for incorporating new libraries and technologies.
+#   This is primarily so that our devs don't write 'test code' in prod files.
+#   Write your functions here first, validate them, then extend as needed
+
+env1="$1"
+env2="$2"
+
+echo -e ".\n..\n...\n...."
+echo "Sandy: This is my vCumulus environment publisher tool."
+echo -e ".\n..\n...\n...."
+if [ -z $1 ] || [ "$1" == "help" ]; then
+    echo "Sandy: To publish vCumulus updates, the format is 'vcuum [[From Env]] [[To Env]]"
+    echo "Sandy: Environments available are:"
+    acc_env=()
+    for D in `ls /var/www/public`; do
+        if [ "$D" == "capture-gallery" ]; then
+            continue
+        fi
+        acc_env+=("$D")
+        echo "$D"
+    done
+    exit 0
+fi
+
+if [ ! -z $env1 ] && [ ! -z $env2 ]; then
+
+    read -n1 -r -p "Sandy: !!WARNING!! This will wipe away all of '$2' and replace it with \
+the contents of '$1'.  Press (y) to continue or any other key to exit." key
+
+    if [[ ! "$key" = 'y' ]]; then
+        echo -e "\n..\n..\nSandy: Oh thank goodness! There was some cool stuff in there ...\n.\n..\n...\n"
+        exit 0
+    fi
+
+    echo -e "\n\nSandy: I am compressing a backup of /var/www/public/$2/react-app to /var/www/public/$2 ... "
+    zip -r /var/www/public/$2/react-app_$(date +%b-%d-%y-%H-%M).zip /var/www/public/$2/react-app
+
+    echo -e "\n\nSandy: I moving /var/www/public/$1/react-app to /var/www/public/$2/react-app ... "
+    sudo rm -rf /var/www/public/$env2/react-app
+    sudo cp -rf /var/www/public/$env1/react-app /var/www/public/$env2/react-app
+
+    echo -e "\n\nSandy: Done! \n.\n..\n...\n"
+fi
+

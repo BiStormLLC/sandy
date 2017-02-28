@@ -1,0 +1,14 @@
+#!/bin/bash
+cd ~/
+
+# Install dependencies 
+sudo apt-get update
+sudo gedit /etc/apt/sources.list
+deb http://us.archive.ubuntu.com/ubuntu wily main universe
+sudo apt-get install libhdhomerun-dev dh-systemd
+
+git clone https://github.com/h0tw1r3/dvbhdhomerun 'dvbhdhomerun-0.0.16+nmu3'
+cd 'dvbhdhomerun-0.0.16+nmu3'
+dpkg-buildpackage
+cd ..
+dpkg -i dvbhdhomerun-dkms_0.0.16+nmu3_all.deb dvbhdhomerun-utils_0.0.16+nmu3_*.deb

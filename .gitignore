@@ -3,5 +3,6 @@
 *.box
 metadata.json
 /logs/*
-/cap_gal/*
+/vCumulus/capture-gallery
 /ProjectSandy/*
+for-your-etc-hosts-file.txt

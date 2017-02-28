@@ -1,0 +1,15 @@
+zone "bistorm.us" {
+    type master;
+    file "/etc/bind/zones/db.bistorm.us";
+};
+
+zone "bistorm.local" {
+    type master;
+    file "/etc/bind/zones/db.bistorm.local";
+};
+
+zone "%%SANDY_R_ZONE%%.in-addr.arpa" {
+    type master;
+    file "/etc/bind/zones/db.%%FIRST_SET%%"; 
+};
+

@@ -2,64 +2,104 @@
 #
 # Description: 
 #  !!! WARNING !!!
-#  This file removes all working files in .profile folders and ALL VOD files!
+#  This script removes home directory files, all working files in conversion .profile folders and ALL VOD files!
 #  You could potentially lose some important personal files if you run this script.
 #  This prepares the VirtualBox environment for distribution
 #  !!! /WARNING !!!
 #
 
-sudo killall nginx
-# Try ending ffmpeg twice, in case it tries to restart itself
-sudo killall ffmpeg
-sudo killall ffmpeg
+echo "Sandy: !!WARNING!! This WILL WIPE AWAY DATA in all of my: "
+echo "Sandy:   --media folders"
+echo "Sandy:   --logs that aren't currently being written to"
+echo "Sandy:       (you can run 'vagrant halt' from your host "
+echo "Sandy:          and delete from /vagrant/logs after shutting down) "
+echo "Sandy:   --vCumulus dev, stg-int and stg-ext code "
+echo "Sandy:     except .zip backups!"
+read -n1 -r -p "Press any to continue or 'Esc' to exit ..." key
+
+if [ "$key" = $'\e' ]; then
+    echo -e "\n..\n..\nSandy: Oh thank goodness! There was some cool stuff in there ..."
+    exit 0
+fi
+
+sudo killall nginx >/dev/null
+# Try ending ffmpeg twice, in case it tries to restart itself (good friend gone bad)
+sudo killall ffmpeg >/dev/null
+sudo killall ffmpeg >/dev/null
+
+# Wipe away home files
+cd ~/
+sudo rm -rf ./*.*
 
 # Files that didn't finish converting
 cd /vagrant/convert/audio
-sudo rm -rf *.*
+sudo rm -rf ./*.* >/dev/null
 sudo rm -rf ./raw/* > /dev/null
 cd /vagrant/convert/video
-sudo rm -rf *.*
+sudo rm -rf ./*.* >/dev/null
 sudo rm -rf ./raw/* > /dev/null
 
 # Logs
 cd /vagrant/logs
-sudo rm -rf * > /dev/null
+sudo rm -rf ./*.* >/dev/null
 
 # cap_gal
 cd /var/www/public/capture-gallery
-sudo rm -rf *.* > /dev/null
+sudo rm -rf ./*.* > /dev/null
+
+# backups and caches
+cd /var/cache
+sudo rm -f ./*.* >/dev/null
+cd /var/backups
+sudo rm -f ./*.* >/dev/null
 
 # HTTP MPEG Directories
 cd /var/www/hls/c
-sudo rm -rf *
+sudo rm -r ./* >/dev/null
 cd ../d
-sudo rm -rf *
+sudo rm -r ./* >/dev/null
 cd ../z
-sudo rm -rf *
+sudo rm -r ./*
 cd /var/www/dash/c
-sudo rm -rf *
+sudo rm -r ./* >/dev/null
 cd ../d
-sudo rm -rf *
+sudo rm -r ./* >/dev/null
 cd ../z
-sudo rm -rf *
+sudo rm -r ./* >/dev/null
 
-# Stored Media Directories
-if [ -d "/var/www/public/vod/audio" ]; then
-    cd /var/www/public/vod/audio
+# Stored Media Directories (No Mercy)
+if [ -d "/var/www/vod/audio" ]; then
+    cd /var/www/vod/audio
     sudo rm -rf * > /dev/null
 fi
-if [ -d "/var/www/public/vod/video" ]; then
-    cd /var/www/public/vod/video
+if [ -d "/var/www/vod/video" ]; then
+    cd /var/www/vod/video
     sudo rm -rf * > /dev/null
 fi
 
 # Vars
 cd /vagrant/bistorm/vars
-sudo rm -rf *
+sudo rm -f ./*
 
-#echo "Sandi: Please wait ... I am zeroing out the drive."
-#sudo apt-get clean
-#sudo dd if=/dev/zero of=/EMPTY bs=1M
-#sudo rm -f /EMPTY
+# vCumulus
+cd /var/www/public/dev
+find . -type f ! -name '*.zip' -delete
+cd /var/www/public/stg-int
+find . -type f ! -name '*.zip' -delete
+cd /var/www/public/stg-ext
+find . -type f ! -name '*.zip' -delete
 
-#cat /dev/null > ~/.bash_history && history -c && exit
+echo "Sandy: Please wait ... I am zeroing out the drive."
+sudo dd if=/dev/zero of=/EMPTY bs=1M >/dev/null
+sudo rm -f /EMPTY
+
+# Clear histories
+cat /dev/null > ~/.bash_history && history -c
+
+echo -e "\n..\n..\n\nSandy: Finished!  Thanks for cleaning the litter box! 8-) Please exit and "
+echo "Sandy:   to export the VirtualBox using Vagrant, "
+echo "Sandy:   run 'vagrant package --output sandy_[Major]-[Minor]-[Dev].box' in your host."
+
+#####
+exit
+#####

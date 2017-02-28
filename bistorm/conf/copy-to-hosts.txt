@@ -1,0 +1,4 @@
+# 1st line is for your router's assigned IP address
+# 2nd line is for when using VirtualBox private network
+%%SANDY_IP%% sandy.bistorm.local sandy.local
+192.168.33.10 sandy
