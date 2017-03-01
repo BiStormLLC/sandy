@@ -1,0 +1,24 @@
+{"channels":
+    [
+        {
+            "number":"#ProjectSandy %%SANDY_IP%%",
+            "name":"BiStorm #ProjectSandy IOT",
+            "logo":"http:\/\/blog.bistorm.org\/wp-content\/uploads\/2016\/10\/bistorm.svg",
+            "url":"http:\/\/%%SANDY_IP%%:9081\/hlsc\/%%CHANNEL_ID%%/index.m3u8",
+            "splashscreen":"http://blog.bistorm.org/wp-content/uploads/2016/08/cropped-bistorm_background.jpg",
+            "genres":"Education",
+            "source":""
+        },
+        {
+            "number":"925",
+            "name":"LostInSound Studios",
+            "logo":"http:\/\/blog.bistorm.org\/wp-content\/uploads\/2016\/10\/bistorm.svg",
+            "url":"http:\/\/%%SANDY_IP%%:9081\/hlsd\/%%CHANNEL_ID%%\/index.m3u8",
+            "splashscreen":"http://blog.bistorm.org/wp-content/uploads/2016/08/cropped-bistorm_background.jpg",
+            "genres":"GAMING",
+            "source":""
+        }
+    ],
+    "modified":%%MODIFIED%%,
+    
+}

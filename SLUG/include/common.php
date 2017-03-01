@@ -8,8 +8,23 @@ function cleanForUrl($text) {
 // Get the network address stored in the vars directory
 function getSandyIp() {
     $output = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
-    $ip = substr($output, strpos($output, "@") + 1);    
-    return $ip;
+    $ip = substr($output, strpos($output, "@") + 1);
+    if(trim($ip) != "") {
+        return $ip;
+    } else {
+        return false;
+    } 
+}
+
+// Get the vCumulus environment
+function getVCumEnv() {
+    $output = shell_exec(". /vagrant/bistorm/vars/vcum_env");
+    $env = substr($output, strpos($output, "@") + 1);
+    if(trim($env) != "") {
+        return $env;
+    } else {
+        return false;
+    } 
 }
 
 # URL parser to get a channel number for playback

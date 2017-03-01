@@ -1,3 +1,5 @@
 RewriteEngine on
 RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^c/([^\.]+)$ channel.php [NC,L]
+RewriteRule ^c/([^\.]+)$ /iot/hdhomerun/channel.php [NC,L]
+RewriteRule ^hdhr/([^\.]+)$ /iot/hdhomerun/ [NC,L]
+RewriteRule ^([^\.]+)$ $1.php [NC,L]

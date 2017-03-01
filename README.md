@@ -11,13 +11,13 @@
    if the license of other software library distributors requires it.  
  However for every other purpose, this software package is intended to be used by the general public.
  There are very great industry benefits to adopting this as a homebrew platform:
-   > Online video platforms require less bandwidth if they receive pre-compressed files
-   > BiStorm prides itself, if anything, on maintainability and provisioning of its software
-   > Churches and event-based mediums can more easily broadcast to small audiences, and in future releases, 
+   - Online video platforms require less bandwidth if they receive pre-compressed files
+   - BiStorm prides itself, if anything, on maintainability and provisioning of its software
+   - Churches and event-based mediums can more easily broadcast to small audiences, and in future releases, 
         have remote audience members contribute their own bandwidth for better quality services for everyone.
 
-## LICENSE: Files in the bistorm and SLUG directories are owned, written and developed by BiStorm, LLC in Tacoma, WA
-   All other software in this repository is subject to its own licenses, terms and agreements
+## LICENSE: Files in the "bistorm" and "SLUG" directories are owned, written and developed by BiStorm, LLC in Tacoma, WA
+   All other software in this repository is a hybrid implementation with vendor software that is subject to its own licenses, terms and agreements
 
 ## AUTHORS/CONTRIBUTORS/SUPPORTERS
 ### @EveEqualsMc2
@@ -52,7 +52,7 @@ Sandy has a key role in BiStorm's virtual dashboarding initiatives, allowing som
 streaming resources to be offloaded to a lighter machine in our network, so that
 a VR demonstration machine can be better utilized without additional running background services.
 
-With that, the Sandy server itself is a great addition to anyone's network-
+With that and other utilities and shortcuts, the Sandy server itself is a great addition to anyone's network-
 accessible media management and archiving strategy, generating an on-demand media NAS 
 (Network Accessible Storage), provided that you adhere to
 the licensing constraints of the open-source packages in this environment.
@@ -79,31 +79,32 @@ Once you have this, visit http://[SANDY_IP]:9981 and enter "vagrant" as the user
  to the Sandy Server is: rtmp://[SANDY_IP]/d and the stream "key" or "name" will be used as
  the URL format to access the stream in a browser like this:
  http://[SANDY_IP]/d/[STREAM_NAME]
- > The HLS stream file can be accessed like this: http://[SANDY_IP]/d/[STREAM_NAME]/index.m3u8
- > The .m3u8 file can be targeted in IPTV software such as Google TV "Channels" app.  This can be accomplished using Cumulus (no relation to BiStorm vCumulus UX): https://play.google.com/store/apps/details?id=com.felkertech.n.cumulustv&hl=en
+ > The HLS stream file can be accessed like this: http://[SANDY_IP]:9081/d/[STREAM_NAME]/index.m3u8
+ > Streams in the "d" application also have MPEG-DASH publishing simulcasted: http://[SANDY_IP]:9081/d/[STREAM_NAME]/index.mpd
+ > The .m3u8 file can be targeted in IPTV software such as Google TV "Channels" app with additional setup.  This can be accomplished using Cumulus (no relation to BiStorm vCumulus UX): https://play.google.com/store/apps/details?id=com.felkertech.n.cumulustv&hl=en
  > The RTMP server is also capable of streaming the new MPEG streaming standard, "DASH".  This is not implemented in the transcoding process for live television because DASH generates multiple files for different bandwidth constraints, and this process is too CPU-intensive for our use-cases.
 
 
 ## WATCHING A SHOW OF SOME KIND? 
- The Sandy Server has CPU-based transcoding of your HDHomeRun channels, allowing you to
- watch SD and HD television signals, converted to 540p, without an additional broadcasting input such as Windows app.
+ The Sandy Server has CPU-based transcoding of your SiliconDust HDHomeRun channels, allowing you to
+ watch SD and HD television signals, converted to 540p, without an additional broadcasting input such as a fullscreen Windows app. 
  To cast any particular SiliconDust HDHomeRun channel and watch in any browser:
- After the server boots, visit http://[SANDY IP]/c/[CHANNEL NUMBER]
-### Note: Because this is a virtual machine, there is no hardware encoding for video and we're willing to wager that you won't see a GPU in the next Pi device.
+ After the server boots, visit http://[SANDY IP]/c/[CHANNEL NUMBER] to initiate and watch a stream.
+> Note: Because this is a virtual machine, there is no hardware encoding for video and we're willing to wager that you won't see a GPU in the next Pi device.
 
-> 1. In a shell/terminal window, navigate to the directory of this folder.
-> 2.  Type in, "vagrant up" and press Enter.
-> 3.  This is a great time to get to know your friends better.  You'll be down-
+- 1. In a shell/terminal window, navigate to the directory of this folder.
+- 2.  Type in, "vagrant up" and press Enter.
+- 3.  This is a great time to get to know your friends better.  You'll be down-
        loading for a while.  If you're returned back to your cursor, you're 
        good to go. Total file size of the #ProjectSandy environment is about 1 GB. 
-> 4.  Type in "vagrant status".  
-> 5.  Is the Virtual Machine running?
+- 4.  Type in "vagrant status".  
+- 5.  Is the Virtual Machine running?
        a. Yes -> Go on to 6.
        b. Tweet @babelfeed a screenshot and let's work through it together
-> 6. The HDHomeRunPrime can now be navigated through Sandy's first UX iteration
+- 6. The HDHomeRunPrime can now be navigated through Sandy's first UX iteration
        On a device in your same subnet (ethernet or wifi), visit:
            http://[SANDY IP]/c/[CHANNEL NUMBER]
-> 7. You should see a video buffering animation as it establishes an open 
+- 7. You should see a video buffering animation as it establishes an open 
        connection to the HDHomeRunPrime, then should begin streaming MP4,
        with about a 3-4 second delay, depending on device range and latency.
  Special Note: Do not be that guy that makes us all look bad by opening your 
@@ -112,8 +113,9 @@ Once you have this, visit http://[SANDY_IP]:9981 and enter "vagrant" as the user
        #LetsNotGetAllLegal #DoNoEvil #StillBroke #DoNotKickstartOurLawyers
 
 ## WANT TO STREAM YOUR DESKTOP WITHOUT A CLOUD MEDIA SERVICE LIKE TWITCH? 
- Sandy comes installed with an RTMP server address, just like live video apps
-   give you when you register with them.  Your RTMP address format is:
+ Sandy comes installed with access to an RTMP server, just like live video apps
+   give you access to when you register with them.  But did we ask for your email? No. Because we're cooler.  
+Your RTMP address format is:
    rtmp://[SANDY_IP]:1981/d/[STREAM NAME]
    From there, Sandy will serve your stream to this address, which you can open
      in any app that can view MP4 streaming video (such as IPTV apps or Mobile Safari):
@@ -123,13 +125,31 @@ Once you have this, visit http://[SANDY_IP]:9981 and enter "vagrant" as the user
    *Authentication has not been setup for this environment.
    **Please tweak cautiously.
 
-## vCumulus WILL NOT CLOUD YOUR JUDGMENT: "Is the heat in our cookies?"
+## vCumulus and Big Brother: "Is the heat in our cookies?"
  Just a note on analytics: BiStorm does not track your use of any streaming
  service.  We have responsible jobs here, and none of them are to monitor your activity.
  However, we do like to know when someone is using our products.
  vCumulus, Sandy's browser UX, uses Google Analytics to track page-level analytics.
  Guess what?  So do about 90% of Web Sites, which is why they have Privacy Policies.
  You can easily stop this tracking with little effort by removing the Google Analytics block in primary index file of the /vagrant/vCumulus/$env/react-app folder.
+
+## HDHomeRun Compatibility
+
+Compatible with HDHomeRun that have DLNA or HTTP streaming capabilities.
+Recommended minimum firmware: 20161107
+
+### Compatible
+- HDHomeRun PRIME (HDHR3-CC)
+- HDHomeRun 4DC (HDHR3-4DC)
+- HDHomeRun DUAL (Gen4)
+- HDHomeRun CONNECT (HDHR4-2US/2DT)
+- HDHomeRun PLUS/EXTEND (HDTC-2US)
+- HDHomeRun EXTEND (HDTC-2US-M)
+
+### Not Compatible
+- HDHomeRun DUAL (HDHR3-US/EU/DT)
+- HDHomeRun DUAL (HDHR2-US/DT)
+- HDHomeRun DUAL (HDHR-US/EU/DT)
 
 ## vCumulus Entry Router Examples: Go here to watch your streams in a browser
  http://[SANDY_IP]/c/13 (opens channel 13 using Sandy's mpegts to mp4 conversion services)
@@ -144,8 +164,8 @@ Once you have this, visit http://[SANDY_IP]:9981 and enter "vagrant" as the user
 ### Nginx, Apache, MongoDB, NodeJS, ReactJS (webpack and JSX with babel ES2015)
 
 ## RTMP and HLS and MP4, OH MY!  
- Nginx is used only for RTMP and HLS streaming, and does not serve the WebApp. The WebApp is 
- hosted with Apache to make it more shareable and friendly for developers of all ages.
+ Nginx is primarily used for RTMP and HLS streaming, and does not serve the WebApp. The WebApp is 
+ hosted with Apache through a port 80 reverse proxy from Nginx. Apache makes it more shareable and friendly for developers of all ages.
  The box is setup to auto-forward inbound requests as shortcuts, using the Ubuntu /etc/local.rc file:
  >  1. port 80 to port 9080 (Sandy vCumulus UX)
  >  2. port 81 to port 9081 (HLS streaming)
@@ -160,7 +180,7 @@ Once you have this, visit http://[SANDY_IP]:9981 and enter "vagrant" as the user
  > rtmp://[SANDY_IP]:1981/d/HLS_NAME
  > rtmp://[SANDY_IP]/d/HLS_NAME
  Port 9082 on the Sandy Server points to Sandy SLUG guest processes, currently running using Apache and PHP: 
- > http://[SANDY_IP]:9082/action/stop - quit processing any ffmpeg transoding jobs
+ > http://[SANDY_IP]:9082/action/stop - quit processing any ffmpeg transoding jobs and rtmp streams
  > http://[SANDY_IP]:9082/c/XYZ - initiate an HLS broadcast from the HDHomeRun 
    channel entered, if a HDHomeRun device is found.
    example: http://[SANDY_IP]:9082/c/13
@@ -176,20 +196,20 @@ Once you have this, visit http://[SANDY_IP]:9981 and enter "vagrant" as the user
 ## ROUTING OF BROWSER REQUESTS TO GUEST SERVICES
 Please note that in these examples, localhost/127.0.0.1/0.0.0.0 is more likely 
  interpreted inside of the server, but for the sake of understanding the 
- relationship between the host (your machine) and the guest, Sandy, we have 
+ relationship between the host (your machine) and the guest, Sandy Server, we have 
  diagrammed these using the physical IP address that VirtualBox established.
 
-###   #Q : WHAT IS SANDY'S localhost IP ADDRESS?
+###   #Q : WHAT IS SANDY'S "Virtual" LAN IP ADDRESS?
 ###   #A : Sandy establishes a virtual private network with your host machine.
         This virtual IP address is not accessible to the rest of your network.
         This is for 'hardening' your staging projects using this server.
         You can disable the network hardware on eth1 and above and still be
         able to access your Sandy server from http://192.168.33.10
 
-###   #Q : WHAT IS SANDY'S LAN IP ADDRESS?
-###   #A : The Sandy Server will output this when you rung 'vagrant up'
-        Your router determines this address and you may have a few, if both wifi and 
-        ethernet hardware are available.  There are many ways to find an IP address, but
+###   #Q : WHAT IS SANDY'S "Private" LAN IP ADDRESS?
+###   #A : The Sandy Server will output this when you run 'vagrant up' or ssh into the guest
+        Your router determines this address, and you may have a few, if both wifi and 
+        ethernet hardware are available.  There are many ways to find a thing's IP address, but
         the easiest way is to connect to the server by running 'vagrant ssh', 
         then run 'ifconfig -a'.  Sandy will show you her virtual networking hardware,
         which is actually your hosts's hardware. Typically, your 'eth0' adapter
@@ -204,6 +224,7 @@ Please note that in these examples, localhost/127.0.0.1/0.0.0.0 is more likely
                             In other words ...
    !! WE DID NOT HARD CODE YOUR DYNAMICALLY CREATED IP ADDRESS INTO OUR SOFTWARE !!
                                 ...
+                       AND NEITHER SHOULD YOU
    To make development easier, we HIGHLY recommend pointing your Sandy Server IP address to a domain using
      your networking "hosts" file to resolve the name internal to your own machine.  Here are some tips:
      http://www.howtogeek.com/howto/27350/beginner-geek-how-to-edit-your-hosts-file/

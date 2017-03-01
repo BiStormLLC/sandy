@@ -8,12 +8,13 @@
     /*******
      * Includes
      */
-    include '/var/www/slug/common.php';
+    include '/var/www/slug/include/common.php';
     
     /*******
      * Page Vars (currently global)
      */
     $localIP = trim(getSandyIp());
+    $vcum_env = getVCumEnv();
     $channel_url = "";
     $app_stream = "";
     $hls_dir = "";
@@ -64,23 +65,18 @@
                 <?php # slug\action\rec::stop(); ?>
                 if(app_stream == 'tv') {                   
                     jQuery.ajax({
-                        'url': 'http://<?php print $localIP ?>:9082/action/stop',
+                        'url': '<?php print $channel_url ?>',
                         'complete': function(xhr, status){
                             jQuery.ajax({
-                            'url': '<?php print $channel_url ?>',
-                            'complete': function(xhr, status){
-                                jQuery.ajax({
-                                'url': 'http://<?php print $localIP ?>:9081/control/record/start?app=c&name=<?php print getChannel() ?>&rec=15s',
-                                'complete': function(xhr, status){},
-                                'error': function(xhr, status, e){
-                                    if(console)console.log("Attempted recording, but failed.");
-                                }
-                                });
-                            },
+                            'url': 'http://<?php print $localIP ?>:9081/control/record/start?app=c&name=<?php print getChannel() ?>&rec=15s',
+                            'complete': function(xhr, status){},
                             'error': function(xhr, status, e){
-                                if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG.");
+                                if(console)console.log("Attempted recording, but failed.");
                             }
-                        });
+                            });
+                        },
+                        'error': function(xhr, status, e){
+                            if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG.");
                         }
                     });
                 }
@@ -90,11 +86,13 @@
         
         <style>
             a:hover { text-decoration: none; }
+            .main-container h1 { color: white; }
             .main-navigation { font-size: 1.4em; }
             .main-actions { font-size:1.2em; }
             
             .footer-container .wrapper { text-align:center; }
             .footer-container .wrapper .info { color:white; }
+            
         </style>
     </head>
 
@@ -118,9 +116,11 @@
                     </video> 
                 </div>
             </div>
+            <h1 class="vcum-env"><?php print $vcum_env ?></h1>
         </div>
         
         <div class="main-navigation">
+            
             <form id="vcumulus-nav" name="navigation">
                 <ul>
                     <li><a class="cast-to-device" href="http://<?php print $localIP ?>:9081/hls<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8" target="_blank">Open .m3u8 for device casting</a></li>
@@ -141,8 +141,6 @@
         <div class="footer-container">
             <footer class="wrapper">
                 <div class="info">
-                    <p> BiStorm vCumulus and #ProjectSandy support are provided 
-                        on Twitter through <a href="http://twitter.com/babelfeed" target="_blank">@babelfeed</a></p>
                     <p> BiStorm, LLC is a publicly funded services, content and 
                         solutions provider in Tacoma, WA, bolstering our technically and talent-affirming 
                         partners through social and life-enriching mediums.</p>
@@ -154,6 +152,9 @@
         <script>
             var playerInstance = jwplayer("stream");
             playerInstance.setup({
+                "image": "http://blog.bistorm.org/wp-content/uploads/2016/08/cropped-bistorm_background.jpg",
+                "abouttext": "BiStorm vCumulus and #ProjectSandy support are provided on Twitter through @babelfeed",
+                "aboutlink": "http://blog.bistorm.org",
                 //setTimeout(function () {}, 5000);
                 <!-- <?php # if ($app_stream == "stream") { ?> 
                 "playlist": [{
@@ -179,8 +180,9 @@
                     ]
                 }],
                 <?php # }  ?>
-                width: "100%",
-                mute: true
+                "width": "100%",
+                "mute": true,
+                "preload": "metadata"
             });
         </script>
 

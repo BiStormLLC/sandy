@@ -38,7 +38,7 @@ the contents of '$1'.  Press (y) to continue or any other key to exit." key
     fi
 
     echo -e "\n\nSandy: I am compressing a backup of /var/www/public/$2/react-app to /var/www/public/$2 ... "
-    zip -r /var/www/public/$2/react-app_$(date +%b-%d-%y-%H-%M).zip /var/www/public/$2/react-app
+    tar -cvzf /var/www/public/$2/react-app_$(date +%b-%d-%y-%H-%M).tar.gz /var/www/public/$2/react-app 
 
     echo -e "\n\nSandy: I moving /var/www/public/$1/react-app to /var/www/public/$2/react-app ... "
     sudo rm -rf /var/www/public/$env2/react-app
