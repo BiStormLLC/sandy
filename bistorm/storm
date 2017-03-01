@@ -7,6 +7,10 @@
 #   This is primarily so that our devs don't write 'test code' in prod files.
 #   Write your functions here first, validate them, then extend as needed
 
+cp /vagrant/bistorm/conf/ubuntu.profile ~/.profile
+
+sudo service nginx stop >/dev/null
+
 env="$1"
 
 ## Apache
@@ -36,13 +40,12 @@ else
     sudo a2ensite sandy.bistorm.us bistorm-slug > /dev/null &
 fi
 
-# Copy conf files to nginx and apache2 folders and then restart services
-## Nginx
+# Copy conf files to nginx and apache2 folders prior to starting nginx (called from user .profile)
 sed -e "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/bistorm/conf/nginx.conf" > ~/nginx.tmp.conf &&
 sudo cp ~/nginx.tmp.conf /usr/local/nginx/conf/nginx.conf && rm ~/nginx.tmp.conf
 
-## Ensure that we have a listening Apache :9080 prior to testing nginx load
-sudo service apache2 restart > /dev/null && sudo fuser -k 80/tcp &>/dev/null && sudo nginx -t && sudo nginx
+## Ensure that we have a listening Apache :9080 prior to testing nginx reload load
+sudo service apache2 restart > /dev/null && sudo fuser -k 80/tcp &>/dev/null
 
 # Export Server IP address to sandy_ip var file
 export_head='#!/bin/bash'
@@ -108,24 +111,26 @@ fi
 
 echo -e "\n\n"
 
-echo -e "\n\n\nSandy: vCumulus Routes:"
+echo -e "\n\nSandy: vCumulus Routes:"
 echo "Sandy: Watch a live channel :TODO ... currently only supports ATSC whole-digit tunings"
 echo "  numbers only http://$SANDY_IP/c/[[HDHOMERUN_CHANNEL]]"
 echo -e "Sandy: Example: \nhttp://192.168.1.555/c/13 for @Q13Fox in Tacoma, WA : 98[404NOTFOUND]"
-echo -e "\n\n"
+echo -e "\n"
 echo "Sandy: Broadcast from desktop: From broadcasting app, publish to: " 
 echo "  rtmp://$SANDY_IP:[default:1935|OR|:1981 if 1935 is blocked]/d/[[unique stream id]]"
 echo -e "Sandy: Example: rtmp://1981/d/pretwitch"
-echo -e "\n\n"
+echo -e "\n"
 echo -e "Sandy: Watch a live desktop broadcast: \n  http://$SANDY_IP/d/pretwitch"
-echo -e "\n\n"
+echo -e "\n"
 echo -e "Sandy: Check out these other open packages from our digi-friends: \n"
 echo -e "--tvheadend: http://$SANDY_IP:9981 \n"
 echo -e "--mediatomb: http://$SANDY_IP:5555 \n"
-echo -e "\n\n"
+echo -e "\n"
 echo "Sandy: To ask me to use my kill switch on all streams, visit [or curl]: " 
 echo "Sandy: http://$SANDY_IP:9082/action/stop or http://$SANDY_IP/slug/action/stop"
-echo -e "\n\n"
+echo -e "\nSandy: Testing Nginx configuration: " && sudo nginx -t 
+sudo nginx
+echo -e "\n"
 
 
 ############
