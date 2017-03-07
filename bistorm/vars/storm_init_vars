@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+# Description: storm init script for setting var scripts in /vagrant/bistorm/vars
+#
+#
+
+if [ -z $1 ] || [ "$1" == "" ]; then
+    env="release"
+else
+    env="$1"
+fi
+
+# Export Server IP address to sandy_ip var file
+export_content="SANDYIP="
+export_ip=$(ifconfig eth1 | awk '/inet addr/{print substr($2,6)}')
+export_footer='export SANDY_IP=$SANDYIP; echo "Sandy: ENV ##VCUM_ENV## is set. Thanks for letting me in!  My guest IP is @$SANDY_IP"'
+echo -e "$export_head \n$export_content\"$export_ip\"\n$export_footer;" > /vagrant/bistorm/vars/sandy_ip
+
+# Get the HDHomeRunPrime IP address and set it in the prime_ip var file
+export_content="PRIMEIP="
+export_ip=$(hdhomerun_config discover | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b")
+if [ ! -z "$export_ip" ] && [ ! "$export_ip" == "" ]; then
+    export_footer='export PRIME_IP=$PRIMEIP; echo "Sandy: ENV ##PRIME_IP## is set. Watch a lot of television? That is OK, so do I.  Your HDHomerun device IP is: @$PRIME_IP"'
+    echo -e "$export_head \n$export_content\"$export_ip\"\n$export_footer;" > /vagrant/bistorm/vars/prime_ip
+fi
+
+# Create environment variable for vCumulus virtual directory path
+export_head='#!/bin/bash'
+export_content="VCUMEN=\"$env\""
+export_footer='export VCUM_ENV=$VCUMEN; echo "Sandy: ENV ##$VCUMEN## is set. Path to the working directory is /var/www/public/$VCUM_ENV. My vCumulus UX ENV is set to @$VCUM_ENV"'
+echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars/vcum_env

@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# Description: storm init script for ubuntu system and user profiles
+
+# Copy hosts file to /etc hosts
+sudo cp /vagrant/bistorm/conf/ubuntu/hosts /etc/hosts
+
+# Copy Ubuntu profile configurations
+sudo cp /vagrant/bistorm/conf/ubuntu/ubuntu.profile /home/vagrant/.profile >/dev/null
+sudo chown vagrant:vagrant /home/vagrant/.profile
+sudo cp /vagrant/bistorm/conf/ubuntu/rc.local /etc/rc.local >/dev/null

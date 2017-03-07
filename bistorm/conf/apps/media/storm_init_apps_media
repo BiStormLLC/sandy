@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# Description: storm init script for starting media apps
+
+# Initiate MediaTomb UPnP server
+sudo cp /vagrant/bistorm/conf/apps/media/mediatomb_config.xml /etc/mediatomb/config.xml
+count=`ps aux | grep -v "grep" | grep -c mediatomb`
+if [ ! $count -gt 0 ]; then
+    sudo mediatomb -e eth1 -p 5555 -m /var/www/vod/ -c /etc/mediatomb/config.xml &
+fi
+
+echo -e "\n##\n"
+
+# Initiate tvheadend
+echo "Sandy: Did you know that vCumulus isn't the only DVR out there?"
+echo "  tvheadhead comes preinstalled with Sandy Server.  See more: https://tvheadend.org/"
+echo "Sandy: Login with user 'vagrant' and password 'vagrant'"
+count=`ps aux | grep -v "grep" | grep -c tvheadend`
+if [ ! $count -gt 0 ]; then
+    sudo tvheadend &
+fi
+
+echo -e "\n##\n"
+

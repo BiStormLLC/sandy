@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Bash script to install packages that should already be inside of the Sandy Box
+#  So, consider these for upgrades and maintenance, not for initial provisioning
+

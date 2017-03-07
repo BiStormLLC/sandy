@@ -1,0 +1,57 @@
+#!/bin/bash
+#
+# Description: storm init script for web server applications
+
+# Halt running nginx processes
+sudo service nginx stop &>/dev/null
+
+if [ -z $1 ] || [ "$1" == "" ]; then
+    env="release"
+else
+    env="$1"
+fi
+
+## Apache
+sed -e "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/bistorm/conf/web/apache/sandy.local.conf" > ~/sandy.local.tmp.conf &&
+sudo cp ~/sandy.local.tmp.conf /etc/apache2/sites-available/sandy.local.conf && rm ~/sandy.local.tmp.conf
+sudo cp /vagrant/bistorm/conf/web/apache/ports.conf /etc/apache2/ports.conf 
+sudo cp /vagrant/bistorm/conf/web/apache/bistorm-slug.conf /etc/apache2/sites-available/
+sudo cp /vagrant/bistorm/conf/web/apache/sandy-staging.bistorm.us.conf /etc/apache2/sites-available/
+sudo cp /vagrant/bistorm/conf/web/apache/sandy1.bistorm.us.conf /etc/apache2/sites-available/
+sudo cp /vagrant/bistorm/conf/web/apache/sandy.bistorm.us.conf /etc/apache2/sites-available/
+sudo chmod 644 /etc/apache2/sites-available/*.conf
+sudo a2dissite bistorm-slug sandy.local sandy1.bistorm.us sandy-staging.bistorm.us sandy.bistorm.us > /dev/null
+if [ ! -z $env ]; then
+    if [ "$env" == "dev" ]; then
+        sudo a2ensite sandy.local bistorm-slug
+    fi
+    if [ "$env" == "stg-int" ]; then
+        sudo a2ensite sandy1.bistorm.us bistorm-slug
+    fi
+    if [ "$env" == "stg-ext" ]; then
+        sudo a2ensite sandy-staging.bistorm.us bistorm-slug
+    fi
+    if [ "$env" == "release" ]; then
+        sudo a2ensite sandy.bistorm.us bistorm-slug
+    fi
+else
+    env="release"
+    sudo a2ensite sandy.bistorm.us bistorm-slug > /dev/null &
+fi
+
+# Copy conf files to nginx and apache2 folders prior to starting nginx (called from user .profile)
+sed -e "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/bistorm/conf/web/nginx/nginx.conf" > ~/nginx.tmp.conf &&
+sudo cp ~/nginx.tmp.conf /usr/local/nginx/conf/nginx.conf && rm ~/nginx.tmp.conf
+
+## Ensure that we have a listening Apache :9080 prior to testing nginx reload
+sudo service apache2 restart &>/dev/null && sudo fuser -k 80/tcp &>/dev/null && echo "Sandy: Apache2 configured and booted successfully."
+
+echo -e "\n##\n"
+
+# Export the lines to copy to your hosts file
+sudo cp /vagrant/bistorm/conf/copy-to-hosts.txt /vagrant/for-your-etc-hosts-file.txt
+echo "Sandy: I've created a text file with recommendations to add to your system hosts file."
+sed -i "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/for-your-etc-hosts-file.txt"
+
+# Restart Nginx
+sudo nginx >/dev/null && echo "Sandy: Nginx has successfully started."
