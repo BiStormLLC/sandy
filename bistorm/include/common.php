@@ -5,10 +5,29 @@ function cleanForUrl($text) {
     return preg_replace('[^a-z^A-Z^0-9^-]', "-", $text);
 }
 
+// Get the vCumulus environment
+function getVCumEnv() {
+    $output = shell_exec(". /vagrant/bistorm/vars/vcum_env");
+    $env = substr($output, strpos($output, "@") + 1);
+    if(trim($env) != "") {
+        return $env;
+    } else {
+        return false;
+    } 
+}
+
 // Get the network address stored in the vars directory
 function getSandyIp() {
-    $output = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
-    $ip = substr($output, strpos($output, "@") + 1);
+    $env = getVCumEnv();
+    if( trim($env) == "release" ) {
+        return "sandy.bistorm.us";
+    } else {
+        echo getVCumEnv();
+        $ip = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
+        $ip = substr($ip, strpos($ip, "@") + 1);
+    }
+    
+    # Validate ip string before returning
     if(trim($ip) != "") {
         return $ip;
     } else {
@@ -16,12 +35,19 @@ function getSandyIp() {
     } 
 }
 
-// Get the vCumulus environment
-function getVCumEnv() {
-    $output = shell_exec(". /vagrant/bistorm/vars/vcum_env");
-    $env = substr($output, strpos($output, "@") + 1);
-    if(trim($env) != "") {
-        return $env;
+# Get the LiveStream IP to serve
+function getSandyTvIP() {
+   $env = getVCumEnv();
+    if( trim($env) == "release" ) {
+        return "sandy.bistorm.us";
+    } else {
+        $ip = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
+        $ip = substr($ip, strpos($ip, "@") + 1);
+    }
+    
+    # Validate ip string before returning
+    if(trim($ip) != "") {
+        return $ip;
     } else {
         return false;
     } 

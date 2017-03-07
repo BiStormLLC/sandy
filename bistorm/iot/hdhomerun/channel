@@ -2,6 +2,13 @@
 #
 # Description: Channel streamer for SLUG SiliconDust extension
 #
+
+if [ -z $1 ]; then
+    echo "Sandy: Please pass me a channel to activate."
+    echo "exit with err"
+    exit 1
+fi 
+
 echo "Sandy: I received a request to stream channel $1 ... " 
 source /vagrant/bistorm/vars/prime_ip >/dev/null
 echo -e "\nSandy: According to /vagrant/bistorm/vars, your SiliconDust device IP is ... $PRIME_IP" 
@@ -12,7 +19,7 @@ count=`ps aux | grep -v "grep" | grep -c ffmpeg`
 # deciding to transcode.  Older HDHomerun devices can not transcode. This script
 # enforces a profile-based conversion for you to tweak to suit your cpu.
 if [ $count -gt 3 ]; then
-    echo -e "\nSandy: FFmpeg is current processing other jobs.  Please use my 'kill' link to stop them and then refresh the page." >> /vagrant/logs/iot/hdhomerun_channel-log.txt
+    echo -e "\nSandy: FFmpeg is current processing other jobs.  Please use my 'kill' link to stop them and then refresh the page." >> /vagrant/logs/iot-hdhomerun_channel-log.txt
     exit 0
 fi
 
@@ -41,8 +48,17 @@ else
     echo "Sandy: No .profile file was found for $d, so I'm using my defaults."
 fi
 
-## Concatenated string of all of our profile settings
-ffmpeg_string=" -s 960x540 -vcodec $p_v_codec -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -profile:v $p_v_profile -crf $p_crf -preset $p_preset -maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"  
-/usr/local/bin/ffmpeg -y -i "http://$PRIME_IP:5004/auto/v$1?$p_homerun_custom_q" $ffmpeg_string "rtmp://localhost:1981/c/$1" >/dev/null 
-echo -e "\nSandy: ffmpeg is running!  Do you see a stream?" 
+# Kill all media conversion processes on the server
+count=`ps aux | grep -v "grep" | grep -c ffmpeg`
+# ffmpeg daemon has 1 PIDs at all times.
+if [ "${count}" -le 2 ]; then
+    ## Concatenated string of all of our profile settings
+    ffmpeg_string=" -s 960x540 -vcodec $p_v_codec -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -profile:v $p_v_profile -crf $p_crf -preset $p_preset -maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"  
+    /usr/local/bin/ffmpeg -y -i "http://$PRIME_IP:5004/auto/v$1?$p_homerun_custom_q" $ffmpeg_string "rtmp://localhost/c/$1" &>/dev/null 
+    echo -e "\nSandy: ffmpeg is running!  Do you see a stream?" 
+else
+    echo "Sandy: My ffmpeg transcoding process has already begun! #TakingOverYourWorld"
+fi
+
+
 

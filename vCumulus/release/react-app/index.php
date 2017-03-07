@@ -1,4 +1,5 @@
 <?php
+    namespace BiStorm;
     // 1. This is an alpha version
     // 2. Frustrations build character
     // 3. We're here to help, not to keep busy
@@ -8,12 +9,13 @@
     /*******
      * Includes
      */
-    include '/var/www/slug/include/common.php';
+    include '/usr/local/bin/bistorm/include/common.php';
     
     /*******
      * Page Vars (currently global)
      */
     $localIP = trim(getSandyIp());
+    $tvIP = trim(getSandyTvIP());
     $vcum_env = getVCumEnv();
     $channel_url = "";
     $app_stream = "";
@@ -21,7 +23,7 @@
     $app_name="d";
     //  Only activate channel if this is a /c/ stream
     if (strpos($_SERVER['REQUEST_URI'], '/c/') !== false) {
-        $channel_url = "http://" . $localIP . ":9082/c/" . getChannel();
+        $channel_url = "http://" . $localIP . "/slug/iot/hdhr/action/channel?arg=" . getChannel();
         $app_stream = "tv";
         $app_name = "c";   
     } else if (strpos($_SERVER['REQUEST_URI'], '/d/') !== false) {
@@ -62,23 +64,17 @@
             $(document).ready(function () {
                 // Set click handlers for Rec buttons
                 var frm = $('form[name="frmSave"]');
-                <?php # slug\action\rec::stop(); ?>
+                
                 if(app_stream == 'tv') {                   
+
                     jQuery.ajax({
                         'url': '<?php print $channel_url ?>',
-                        'complete': function(xhr, status){
-                            jQuery.ajax({
-                            'url': 'http://<?php print $localIP ?>:9081/control/record/start?app=c&name=<?php print getChannel() ?>&rec=15s',
-                            'complete': function(xhr, status){},
-                            'error': function(xhr, status, e){
-                                if(console)console.log("Attempted recording, but failed.");
-                            }
-                            });
-                        },
                         'error': function(xhr, status, e){
-                            if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG.");
-                        }
-                    });
+                            if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG or the Gateway took too long to respond.");
+                        },
+                        timeout: 3000
+                    })
+
                 }
             }); 
            -->
@@ -112,7 +108,7 @@
                 <div id="stream" width="100%" height="auto">				
                     <!-- for live streaming source -->
                     <video width="100%" height="95%" controls>
-                        <src="http://<?php print $localIP ?>:9081/hls<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8" type="application/x-mpegurl">
+                        <src="http://<?php print $localIP ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>" type="application/x-mpegurl">
                     </video> 
                 </div>
             </div>
@@ -123,27 +119,29 @@
             
             <form id="vcumulus-nav" name="navigation">
                 <ul>
-                    <li><a class="cast-to-device" href="http://<?php print $localIP ?>:9081/hls<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8" target="_blank">Open .m3u8 for device casting</a></li>
+                    <li><a class="cast-to-device" href="http://<?php print $localIP ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>" target="_blank">Open IPTV stream for device casting</a></li>
                 </ul>
             </form>
         </div>
-        
+
         <div class="main-actions">
             <form id="slug-action" name="SLUG_Action">
                 <ul>
-                    <li><input type="submit" value="Rec" name="SLUG_Action_Rec_Start_Raw" /></li>
-                    <li><input type="submit" value="Stop" name="SLUG_Action_Rec_Stop_Raw" disabled /></li>
-                    <li><a class="action-kill-all-feeds" href="http://<?php print $localIP ?>:9082/hdhr/action/stop" target="_blank">Ask Sandy to kill all feeds and conversions</a></li>
+                            <!--<li><input type="submit" value="Rec" name="SLUG_Action_Rec_Start_Raw" /></li>
+                    <li><input type="submit" value="Stop" name="SLUG_Action_Rec_Stop_Raw" disabled /></li>-->
+                    <li><a class="action-kill-all-feeds" href="http://<?php print $localIP ?>/slug/hdhr/action/stop" target="_blank">Ask Sandy to kill all feeds and conversions</a></li>
                 </ul>
             </form>
         </div>
-        
+        -->
         <div class="footer-container">
             <footer class="wrapper">
                 <div class="info">
                     <p> BiStorm, LLC is a publicly funded services, content and 
                         solutions provider in Tacoma, WA, bolstering our technically and talent-affirming 
                         partners through social and life-enriching mediums.</p>
+                    <p> <a href="http://blog.bistorm.org/privacy/" target="_blank">Privacy Policy</a></p>
+                    <p> <i>You're actually in our bedroom right now.<br><a href="https://Paypal.Me/BiStormP2P/5" target="_blank">$5 to help keep the lights on?</a></i></p>
                 </div>
             </footer>
         </div>
@@ -157,25 +155,19 @@
                 "aboutlink": "http://blog.bistorm.org",
                 //setTimeout(function () {}, 5000);
                 <!-- <?php # if ($app_stream == "stream") { ?> 
-                "playlist": [{
-                      sources: [
-                            {file: "http://<?php print $localIP ?>/public/playlist/d-hls-mbr.m3u8"},
-                            {file: "http://<?php print $localIP ?>/public/playlist/d-rtmp-mbr.smil"}
-                      ]          
-                  }],
                 <?php # } else { ?> -->
                  playlist: [{
                     sources: [
                         {   
-                            file: "http://<?php print $localIP ?>:9081/hls<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8"
+                            file: "http://<?php print $tvIP ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8"
                         },
                         
                         {
-                            file: "http://<?php print $localIP ?>:9081/dash<?php print $app_name ?>/<?php print getChannel()?>/index.mpd"
+                            file: "http://<?php print $tvIP ?>/dash<?php print $app_name ?>/<?php print getChannel()?>/index.mpd"
                             
                         },
                         {
-                            file: "rtmp://<?php print $localIP ?>:1981/<?php print $app_name ?>/<?php print getChannel()?>"
+                            file: "rtmp://<?php print $tvIP ?>/<?php print $app_name ?>/<?php print getChannel()?>"
                         }
                     ]
                 }],

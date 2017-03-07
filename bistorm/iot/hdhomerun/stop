@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# Description: Channel streamer for SLUG SiliconDust extension
+#
+echo "Sandy: I received a request to stop streaming ... " 
+/vagrant/bistorm/ffmpeg_kill /var/www/hls /var/www/dash
+echo "Sandy: Finished!"
+
+
+

@@ -1,0 +1,29 @@
+{
+    "bistorm": {
+        "sh_root": "/usr/local/bin/bistorm",
+        "slug": {
+            "web_root": "/var/www/slug",
+            "iot": {
+                "sh_root": "/usr/local/bistorm/iot",
+                "hdhr": {
+                    "sh_root": "/usr/local/bin/bistorm/iot/hdhomerun",
+                    "action": [{
+                        "name": "channel",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "@sandy"
+                        }
+                      },{
+                        "name": "stop",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "@sandy"
+                        } 
+                    }]
+                }
+            }
+        }        
+    }
+}

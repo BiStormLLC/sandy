@@ -8,7 +8,7 @@ warning=0
 echo "Sandy: My script ffmpeg-kill is running ..."
 if [ $# -eq 0 ]
   then
-    echo "Sandy: Please pass me directories to cleanse, like: 'ffmpeg_kill /var/www/public/hlsc /var/www/public/hlsd'"
+    echo "Sandy: Please pass me directories to cleanse, like: 'ffmpeg_kill /var/www/public/hls /var/www/public/dash'"
     echo "Sandy: Pass carefully or I might just delete your project files. #JustKiddingILoveYou"
     echo "Sandy: But at least I won't undo your windows. #StillNotYourMaid"
     echo "Exit er 1"
@@ -17,8 +17,8 @@ fi
 
 # Kill all media conversion processes on the server
 count=`ps aux | grep -v "grep" | grep -c ffmpeg`
-# ffmpeg daemon has 3 PIDs at all times.
-if [ "${count}" -le 3 ]; then
+# ffmpeg daemon has 1 PIDs at all times.
+if [ "${count}" -le 2 ]; then
     echo "Sandy: I wasn't running any conversions. #JustSoYouKnow"
 else
     sudo killall ffmpeg &&

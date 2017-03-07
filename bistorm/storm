@@ -7,119 +7,46 @@
 #   This is primarily so that our devs don't write 'test code' in prod files.
 #   Write your functions here first, validate them, then extend as needed
 
-cp /vagrant/bistorm/conf/ubuntu.profile ~/.profile
+echo -e "\n\nSandy: my storm script was initiated.  Here's what you should know:"
 
-sudo service nginx stop &>/dev/null
-
-env="$1"
-
-echo -e "\n\nSandy: my storm script was initiated.  Here's what you should know:\n\n##\n"
-
-## Apache
-sed -e "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/bistorm/conf/sandy.local.conf" > ~/sandy.local.tmp.conf &&
-sudo cp ~/sandy.local.tmp.conf /etc/apache2/sites-available/sandy.local.conf && rm ~/sandy.local.tmp.conf
-sudo cp /vagrant/bistorm/conf/ports.conf /etc/apache2/ports.conf 
-sudo cp /vagrant/bistorm/conf/bistorm-slug.conf /etc/apache2/sites-available/
-sudo cp /vagrant/bistorm/conf/sandy-staging.bistorm.us.conf /etc/apache2/sites-available/
-sudo cp /vagrant/bistorm/conf/sandy1.bistorm.us.conf /etc/apache2/sites-available/
-sudo cp /vagrant/bistorm/conf/sandy.bistorm.us.conf /etc/apache2/sites-available/
-sudo chmod 644 /etc/apache2/sites-available/*.conf
-sudo a2dissite bistorm-slug sandy.local sandy1.bistorm.us sandy-staging.bistorm.us sandy.bistorm.us > /dev/null
-if [ ! -z $env ]; then
-    if [ "$env" == "dev" ]; then
-        sudo a2ensite sandy.local bistorm-slug
-    fi
-    if [ "$env" == "stg-int" ]; then
-        sudo a2ensite sandy1.bistorm.us bistorm-slug
-    fi
-    if [ "$env" == "stg-ext" ]; then
-        sudo a2ensite sandy-staging.bistorm.us bistorm-slug
-    fi
-    if [ "$env" == "release" ]; then
-        sudo a2ensite sandy.bistorm.us bistorm-slug
-    fi
-else
-    env="release"
-    sudo a2ensite sandy.bistorm.us bistorm-slug > /dev/null &
-fi
-
-# Copy conf files to nginx and apache2 folders prior to starting nginx (called from user .profile)
-sed -e "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/bistorm/conf/nginx.conf" > ~/nginx.tmp.conf &&
-sudo cp ~/nginx.tmp.conf /usr/local/nginx/conf/nginx.conf && rm ~/nginx.tmp.conf
-
-## Ensure that we have a listening Apache :9080 prior to testing nginx reload load
-sudo service apache2 restart > /dev/null && sudo fuser -k 80/tcp &>/dev/null && echo "Sandy: Apache2 configured and booted successfully."
-
-# Create environment variable for vCumulus virtual directory path
-export_head='#!/bin/bash'
-export_content="VCUMEN=\"$env\""
-export_footer='export VCUM_ENV=$VCUMEN; echo "Sandy: ENV ##$VCUMEN## is set. Path to the working directory is /var/www/public/$VCUM_ENV. My vCumulus UX ENV is set to @$VCUM_ENV"'
-echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars/vcum_env
-
-# Export Server IP address to sandy_ip var file
-export_content="SANDYIP="
-export_ip=$(ifconfig eth1 | awk '/inet addr/{print substr($2,6)}')
-export_footer='export SANDY_IP=$SANDYIP; echo "Sandy: ENV ##VCUM_ENV## is set. Thanks for letting me in!  My guest IP is @$SANDY_IP."'
-echo -e "$export_head \n$export_content\"$export_ip\"\n$export_footer;" > /vagrant/bistorm/vars/sandy_ip
-
-# Get the HDHomeRunPrime IP address and set it in the prime_ip var file
-export_content="PRIMEIP="
-export_ip=$(hdhomerun_config discover | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b")
-if [ ! -z "$export_ip" ] && [ ! "$export_ip" == "" ]; then
-    export_footer='export PRIME_IP=$PRIMEIP; echo "Sandy: ENV ##PRIME_IP## is set. Watch a lot of television? That is OK, so do I.  Your HDHomerun device IP is: @$PRIME_IP"'
-    echo -e "$export_head \n$export_content\"$export_ip\"\n$export_footer;" > /vagrant/bistorm/vars/prime_ip
-fi
+source /vagrant/bistorm/conf/ubuntu/storm_init_ubuntu_setup $1
+source /vagrant/bistorm/vars/storm_init_vars $1
 
 echo -e "\n##\n"
 
+# Initialize Env Vars
 echo -e "Sandy: Environment Variables are available through PHP: http://php.net/manual/en/function.getenv.php\n"
-# Initialize Env Vars with dir hardcoded for security
 for f in /vagrant/bistorm/vars/*; do
+    if [ $(basename "$f") == "storm_init_vars" ]; then continue; fi
     echo -e "Sandy: $(basename $f): \n"
     source "/vagrant/bistorm/vars/$(basename $f)"
     echo -e "\n"
 done
 
-echo -e "\n##\n"
+echo -e "##\n"
 
-# Export the lines to copy to your hosts file
-sudo cp /vagrant/bistorm/conf/copy-to-hosts.txt /vagrant/for-your-etc-hosts-file.txt
-echo "Sandy: I've created a text file with recommendations to add to your system hosts file."
-sed -i "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/for-your-etc-hosts-file.txt"
+# Initialize Web Servers and Applications
+source /vagrant/bistorm/conf/web/storm_init_web_servers $1
+source /vagrant/bistorm/conf/apps/media/storm_init_apps_media $1
 
-# Live storm events are like this: death, hills and dashing
+# Service resets
+## Live storm events are like this: death, hills and dashing
 /vagrant/bistorm/ffmpeg_kill "/var/www/hls" "/var/www/dash" > /vagrant/logs/ffmpeg_kill-log.txt 
-
-# Kill running X^nDir VOD services
+## Kill running X^nDir VOD services
 sudo killall raw_mp4_to_vod raw_aac_to_vod &>/dev/null
 
-# Ensure we have directories to transfer recordings from working directory (/vagrant/convert)
+# Ensure we have directories to transfer recordings from 
+#  working directory (/vagrant/convert)
 if [ -d "/var/www/vod" ]; then
     mkdir -p "/var/www/vod/video/live" "/var/www/vod/audio/live"
 fi
 
-echo "Sandy: I am initiating listeners for auto-conversion of live feeds."
+# X^nDir script initializations
+echo "Sandy: I am initiating X^nDir for auto-conversion of live feeds."
 /vagrant/bistorm/convert/raw_mp4_to_vod "/vagrant/convert/video/raw" "/var/www/vod" > /vagrant/logs/service-raw_mp4_to_vod-log.txt &
 /vagrant/bistorm/convert/raw_aac_to_vod "/vagrant/convert/audio/raw" "/var/www/vod" > /vagrant/logs/service-raw_aac_to_vod-log.txt &
 
-# Initiate MediaTomb UPnP server
-sudo cp /vagrant/bistorm/conf/mediatomb_config.xml /etc/mediatomb/config.xml
-count=`ps aux | grep -v "grep" | grep -c mediatomb`
-if [ ! $count -gt 0 ]; then
-    sudo mediatomb -e eth1 -p 5555 -m /vagrant/media/ -c /etc/mediatomb/config.xml &
-fi
-
-echo -e "\n##\n"
-
-# Initiate tvheadend
-echo "Sandy: Did you know that vCumulus isn't the only DVR out there?"
-echo "  tvheadhead comes preinstalled with Sandy Server.  See more: https://tvheadend.org/"
-echo "Sandy: Login with user 'vagrant' and password 'vagrant'"
-count=`ps aux | grep -v "grep" | grep -c tvheadend`
-if [ ! $count -gt 0 ]; then
-    sudo tvheadend &
-fi
-
+# Output footer message
 echo -e "\n##\n"
 
 echo -e "Sandy: vCumulus Routes:"
@@ -139,8 +66,9 @@ echo -e "--mediatomb: http://$SANDY_IP:5555 \n"
 echo -e "\n##\n"
 echo "Sandy: To ask me to use my kill switch on all streams, visit [or curl]: " 
 echo -e "Sandy: http://$SANDY_IP:9082/action/stop or \n    http://$SANDY_IP/slug/action/stop"
-echo -e "\nSandy: Testing Nginx configuration and reloading if necessary (no such process means it was not running): " && sudo nginx -t 
-sudo nginx
+echo -e "\nSandy: Testing Nginx configuration: " 
+sudo nginx -t 
+
 echo -e "\n##\n"
 
 
