@@ -129,7 +129,7 @@
                 <ul>
                             <!--<li><input type="submit" value="Rec" name="SLUG_Action_Rec_Start_Raw" /></li>
                     <li><input type="submit" value="Stop" name="SLUG_Action_Rec_Stop_Raw" disabled /></li>-->
-                    <li><a class="action-kill-all-feeds" href="http://<?php print $localIP ?>/slug/hdhr/action/stop" target="_blank">Ask Sandy to kill all feeds and conversions</a></li>
+                    <li><a class="action-kill-all-feeds" href="http://<?php print $localIP ?>/slug/iot/hdhr/action/stop" target="_blank">Ask Sandy to kill all feeds and conversions</a></li>
                 </ul>
             </form>
         </div>

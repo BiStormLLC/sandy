@@ -1,4 +1,5 @@
 <?php
+namespace BiStorm;
 
 #  Ensures that the string is acceptable for URL use
 function cleanForUrl($text) {
