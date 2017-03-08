@@ -108,7 +108,7 @@
                 <div id="stream" width="100%" height="auto">				
                     <!-- for live streaming source -->
                     <video width="100%" height="95%" controls>
-                        <src="http://<?php print $tvIP ?>/hls/<?php print $app_name ?>/<?php print getChannel()?>" type="application/x-mpegurl">
+                        <src="http://<?php print $tvIP ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>" type="application/x-mpegurl">
                     </video> 
                 </div>
             </div>
@@ -119,7 +119,7 @@
             
             <form id="vcumulus-nav" name="navigation">
                 <ul>
-                    <li><a class="cast-to-device" href="http://<?php print $localIP ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>" target="_blank">Open IPTV stream for device casting</a></li>
+                    <li><a class="cast-to-device" href="http://<?php print $tvIP ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8" target="_blank">Open IPTV stream for device casting</a></li>
                 </ul>
             </form>
         </div>
@@ -159,7 +159,7 @@
                  playlist: [{
                     sources: [
                         {   
-                            file: "http://<?php print $tvIP; ?>/hls/<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8"
+                            file: "http://<?php print $tvIP; ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8"
                         },
                         
                         {

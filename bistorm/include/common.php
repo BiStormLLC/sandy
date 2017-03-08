@@ -45,7 +45,7 @@ function getSandyTvIP() {
         $ip = substr($ip, strpos($ip, "@") + 1);
     }
     $ip = preg_replace( "/\r|\n/", "", $ip );
-    $ip = trim("$ip:9081");
+    #$ip = trim("$ip:9081");
     
     # Validate ip string before returning
     if(trim($ip) != "") {
