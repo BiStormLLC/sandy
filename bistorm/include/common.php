@@ -20,10 +20,9 @@ function getVCumEnv() {
 // Get the network address stored in the vars directory
 function getSandyIp() {
     $env = getVCumEnv();
-    if( trim($env) == "release" ) {
-        return "sandy.bistorm.us";
+    if( trim($env) == "stg-ext" ) {
+        return "sandy1.bistorm.us";
     } else {
-        echo getVCumEnv();
         $ip = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
         $ip = substr($ip, strpos($ip, "@") + 1);
     }
@@ -39,16 +38,18 @@ function getSandyIp() {
 # Get the LiveStream IP to serve
 function getSandyTvIP() {
    $env = getVCumEnv();
-    if( trim($env) == "release" ) {
-        return "sandy.bistorm.us";
+    if( trim($env) == "stg-ext" ) {
+        return "sandy1.bistorm.us";
     } else {
         $ip = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
         $ip = substr($ip, strpos($ip, "@") + 1);
     }
+    $ip = preg_replace( "/\r|\n/", "", $ip );
+    $ip = trim("$ip:9081");
     
     # Validate ip string before returning
     if(trim($ip) != "") {
-        return $ip;
+        return trim($ip);
     } else {
         return false;
     } 

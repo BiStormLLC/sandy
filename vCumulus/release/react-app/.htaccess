@@ -357,7 +357,11 @@ AddDefaultCharset utf-8
     RewriteRule ^d/([^\.]+)$ index.php [NC,L]
     RewriteRule ^z/([^\.]+)$ index.php [NC,L]
 
+    ## If Nginx Proxy doesn't catch, then we proxy back to slug
+    RewriteRule ^slug/([^\.]+)$ http://%{HTTP_HOST}:9082/slug/$1 [NC,L]
 
+    ## If Nginx Proxy doesn't catch, then we proxy back to iptv
+    RewriteRule ^/([^\.]+)$ http://%{HTTP_HOST}:9081/hls/$1 [NC,L]
 </IfModule>
 
 # ----------------------------------------------------------------------

@@ -13,4 +13,6 @@
 
 #Service rerouting
 
+iptables -t nat -A PREROUTING -p tcp --dport 8080 -j REDIRECT --to 80
+
 exit 0
