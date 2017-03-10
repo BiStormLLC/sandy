@@ -1,6 +1,6 @@
 {
   "name": "ProjectSandy",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "A ReactJS JSX streaming service consumer and open Uniform Resource Identification Service (URIS)",
   "main": "index.jsx",
   "scripts": {
