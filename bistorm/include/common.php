@@ -1,109 +1,134 @@
 <?php
 namespace BiStorm;
 
-#  Ensures that the string is acceptable for URL use
-function cleanForUrl($text) {
-    return preg_replace('[^a-z^A-Z^0-9^-]', "-", $text);
-}
+error_reporting(E_ERROR | E_WARNING | E_PARSE);
 
-// Get the vCumulus environment
-function getVCumEnv() {
-    $output = shell_exec(". /vagrant/bistorm/vars/vcum_env");
-    $env = substr($output, strpos($output, "@") + 1);
-    if(trim($env) != "") {
-        return $env;
-    } else {
-        return false;
+include_once '/var/www/slug/slug.php';
+
+##
+#
+#  TODO: Allow one Ip to serve vCum and one to serve IpTV
+#
+##
+class Common {
+    public $env;
+    public $sandyIp = "localhost";
+    public $sandyTvIp = "localhost";
+    public $vCumulus; // UX interactions
+    public $path; // URL path 
+
+    public function __construct($env_name = 'release'){
+        $this->sandyIp = self::getSandyIp();
+        $this->sandyTvIp = self::getSandyTvIp();
+        $this->path = self::getCurrentPathAsArray();
+        if($env_name != 'release') {
+            $this->env = $env_name;
+        } else {
+            $this->env = self::getVCumEnvName();
+        }
     } 
-}
-
-// Get the network address stored in the vars directory
-function getSandyIp() {
-    $env = getVCumEnv();
-    if( trim($env) == "stg-ext" ) {
-        return "sandy1.bistorm.us";
-    } else {
-        $ip = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
-        $ip = substr($ip, strpos($ip, "@") + 1);
+    
+    #  Ensures that the string is acceptable for URL use
+    public static function cleanStringForUrl($text) {
+        return preg_replace('[^a-z^A-Z^0-9^-]', "-", $text);
     }
     
-    # Validate ip string before returning
-    if(trim($ip) != "") {
-        return $ip;
-    } else {
-        return false;
-    } 
-}
-
-# Get the LiveStream IP to serve
-function getSandyTvIP() {
-   $env = getVCumEnv();
-    if( trim($env) == "stg-ext" ) {
-        return "sandy1.bistorm.us";
-    } else {
-        $ip = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
-        $ip = substr($ip, strpos($ip, "@") + 1);
+    #
+    public static function getCurrentPathAsArray() {
+        return explode("/", $_SERVER['REQUEST_URI']);
     }
-    $ip = preg_replace( "/\r|\n/", "", $ip );
-    #$ip = trim("$ip:9081");
     
-    # Validate ip string before returning
-    if(trim($ip) != "") {
-        return trim($ip);
-    } else {
-        return false;
-    } 
-}
+    # get the vCumulus Environment name set through storm shell init bash scripts
+    public static function getVCumEnvName() {
+        return vCumulus::getEnv();
+    }
+    
+    # Sets the vCumulus Environment Object
+    public function setVCumEnv($env_name = "release", $app_path) {
+        $vCumulus = new vCumulus($env_name, $app_path);
+        $this->vCumulus = $vCumulus;
+        
+        // TODO: Switch environments using storm, SLUG and $env_name 
+        
+        return $this;
+    }
+    
+    // Get the network address stored in the vars directory
+    private static function getSandyIp() {
+        $env = self::getVCumEnvName();
+        if( trim($env) == "stg-ext" ) {
+            return "sandy1.bistorm.us";
+        } else {
+            $ip = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
+            $ip = substr($ip, strpos($ip, "@") + 1);
+        }
 
-# URL parser to get a channel number for playback
-function getChannel() {
-    $url = cleanForUrl($_SERVER['REQUEST_URI']); //returns the current URL
-    $parts = explode('/',$url);
-    $dir = $_SERVER['SERVER_NAME'];
-
-    for ($i = 0; $i < count($parts) - 1; $i++) {
-        $dir .= $parts[$i] . "/";
+        # Validate ip string before returning
+        if(trim($ip) != "") {
+            return $ip;
+        } else {
+            return false;
+        } 
     }
 
-    # TODO: This block will be more fleshed out later
-    #   The intent is to ensure string quality of the url upon entry to the page
-    #   (Security: Avoiding string injections)
-    if ($pos = strpos($url, 'c/') !== false) {
-        $hd_ch = substr($url, $pos);
-        $hd_ch = trim($hd_ch, 'c/');
-        $hd_ch = strval(floatval($hd_ch));
-        return $hd_ch;
-    } elseif ($pos = strpos($url, 'd/') !== false) {
-        $hd_ch = substr($url, $pos);
-        $hd_ch = trim($hd_ch, 'd/');
-        return $hd_ch;
-    } elseif ($pos = strpos($url, 'z/') !== false) {
-        $hd_ch = substr($url, $pos);
-        $hd_ch = trim($hd_ch, 'z/');
-        return $hd_ch;
+    # Get the LiveStream Ip to serve
+    public static function getSandyTvIp() {
+        $env = self::getVCumEnvName();
+        if( trim($env) == "stg-ext" ) {
+            return "sandy1.bistorm.us";
+        } else {
+            $ip = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
+            $ip = substr($ip, strpos($ip, "@") + 1);
+        }
+        $ip = preg_replace( "/\r|\n/", "", $ip );
+
+        # Validate ip string before returning
+        if(trim($ip) != "") {
+            return trim($ip);
+        } else {
+            return false;
+        } 
+    }
+    
+    # Set slug to the vCumulus Environment Object
+    public static function addSlugToEnv($ux_env, $slug_required_apps) {
+        $ux_env->slug = new \stdClass();
+        foreach( $slug_required_apps as $app_name => $app_body ) {
+            $ux_env->slug->{$app_name} = new \BiStorm\SLUG\Slug('bistorm', $app_body);
+        }
+    }
+    
+    # Usecase: Redirect to an existing conversion channel if one is running in the 'c' app 
+    # $app_name = ['c','d'...'z']
+    public static function getLiveStreamUrls($app_name) {
+        // SLUG integration
+        if( ! $this->isSlugEnabled() ) {
+            throw new Exception('SLUG is not enabled for this environment.');
+        }
+        
+    }
+
+    # SLUG integration to determine if NGINX is currently serving RTMP content
+    public static function isSandyStreaming() {
+        // SLUG integration
+        if( ! $this->isSlugEnabled() ) {
+            throw new Exception('SLUG is not enabled for this environment.');
+        }
+    }
+
+    # SLUG integration to determine if FFMPEG processes are running
+    public static function isSandyConverting() {
+        // SLUG integration
+        if( ! $this->isSlugEnabled() ) {
+            throw new Exception('SLUG is not enabled for this environment.');
+        }
     } 
+    
+    # Is SLUG enabled
+    public function isSlugEnabled() {
+        if ( is_object($this->slug) ) {
+            return true;
+        }
+        return false;
+    }
 }
-
-# Callback to Nginx-RTMP module to start and stop record streams
-#  action=[start|stop]
-#  app=[c|d|z]
-#  stream=[channel_id,stream_id]
-#  rec=nginx.conf recorders
-function record($action, $app, $stream, $rec) {
-     // create curl resource 
-    $ch = curl_init(); 
-
-    // set url 
-    curl_setopt($ch, CURLOPT_URL, "http://" . getSandyIp() . ":9081/control/record/" . $action . "?app=" . $app . "&stream=" . $stream . "&rec=" . $rec); 
-
-    //return the transfer as a string 
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
-
-    // $output contains the output string 
-    $output = curl_exec($ch); 
-
-    // close curl resource to free up system resources 
-    curl_close($ch);      
-}
-
-

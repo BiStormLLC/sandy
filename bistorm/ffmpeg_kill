@@ -18,7 +18,7 @@ fi
 # Kill all media conversion processes on the server
 count=`ps aux | grep -v "grep" | grep -c ffmpeg`
 # ffmpeg daemon has 1 PIDs at all times.
-if [ "${count}" -le 2 ]; then
+if [ "${count}" -le 1 ]; then
     echo "Sandy: I wasn't running any conversions. #JustSoYouKnow"
 else
     sudo killall ffmpeg &&

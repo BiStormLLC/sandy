@@ -1,5 +1,6 @@
 <?php
     namespace BiStorm;
+
     // 1. This is an alpha version
     // 2. Frustrations build character
     // 3. We're here to help, not to keep busy
@@ -9,32 +10,43 @@
     /*******
      * Includes
      */
-    include '/usr/local/bin/bistorm/include/common.php';
+    include_once '/usr/local/bin/bistorm/include/common.php';
+    include_once '/usr/local/bin/bistorm/include/vcumulus.php';
     
-    /*******
-     * Page Vars (currently global)
+    $slug_required_apps = array(
+        "hdhr_channel" => array(
+            'app_namespace' => 'iot', 
+            'app_name' => 'hdhr',
+            'action' => 'channel',
+            'args' => array(),
+        ),
+        "hdhr_stop" => array(
+            'app_namespace' => 'iot',
+            'app_name' => 'hdhr',
+            'action' => 'stop',
+            'args' => array(),
+        ),
+        'set_flag' => array(
+            'app_namespace' => 'vcumux',
+            'app_name' => 'stream',
+            'action' => 'set_flag',
+            'args' => array(),
+        ),
+        'check_flag' => array(
+            'app_namespace' => 'vcumux',
+            'app_name' => 'stream',
+            'action' => 'check_flag',
+            'args' => array(),
+        )
+    );
+    
+    /**
+     * All our packaged goodies
      */
-    $localIP = trim(getSandyIp());
-    $tvIP = trim(getSandyTvIP());
-    $vcum_env = getVCumEnv();
-    $channel_url = "";
-    $app_stream = "";
-    $hls_dir = "";
-    $app_name="d";
-    //  Only activate channel if this is a /c/ stream
-    if (strpos($_SERVER['REQUEST_URI'], '/c/') !== false) {
-        $channel_url = "http://" . $localIP . "/slug/iot/hdhr/action/channel?arg=" . getChannel();
-        $app_stream = "tv";
-        $app_name = "c";   
-    } else if (strpos($_SERVER['REQUEST_URI'], '/d/') !== false) {
-        $app_stream = getChannel();
-        $app_name = "d"; 
-    } else if (strpos($_SERVER['REQUEST_URI'], '/z/') !== false) {
-        $app_stream = getChannel();
-        $app_name = "z"; 
-    }
-
-    #record('start',$app_name, getChannel(), '15s');
+    $storm = new Common();
+    $env = $storm->getVCumEnvName();
+    $storm->setVCumEnv($env, $storm->path); // $storm->vCumulus
+    $storm->addSlugToEnv($storm->vCumulus, $slug_required_apps);
 
 ?>
 
@@ -46,7 +58,7 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title>BiStorm #ProjectSandy vCumulus 0.4.X</title>
+        <title>BiStorm #ProjectSandy vCumulus 0.5.X</title>
         <meta name="description" content="Peer2Peer, Biz2Biz, Oh what a relief IT is.">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-icon.png" />
@@ -55,11 +67,8 @@
         <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
         
         <script>
-            <!--
-            // TODO: This is a fix to get the channel activated.  
-            // Will improve upon it soon.
        
-            var app_stream = "<?php echo $app_stream ?>";
+            var app_stream = "<?php echo $storm->vCumulus->streamType ?>";
 
             $(document).ready(function () {
                 // Set click handlers for Rec buttons
@@ -68,7 +77,7 @@
                 if(app_stream == 'tv') {                   
 
                     jQuery.ajax({
-                        'url': '<?php print $channel_url ?>',
+                        'url': '<?php print $storm->vCumulus->channelActivationUrl ?>',
                         'error': function(xhr, status, e){
                             if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG or the Gateway took too long to respond.");
                         },
@@ -108,29 +117,32 @@
                 <div id="stream" width="100%" height="auto">				
                     <!-- for live streaming source -->
                     <video width="100%" height="95%" controls>
-                        <src="http://<?php print $tvIP ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>" type="application/x-mpegurl">
+                        <src="<?php print $storm->vCumulus->iptvUrl ?>" type="application/x-mpegurl">
                     </video> 
                 </div>
             </div>
-            <h1 class="vcum-env"><?php print $vcum_env ?></h1>
+            <h1 class="vcum-env"><?php print $storm->vcumulus->env ?></h1>
         </div>
         
         <div class="main-navigation">
-            
             <form id="vcumulus-nav" name="navigation">
                 <ul>
-                    <li><a class="cast-to-device" href="http://<?php print $tvIP ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8" target="_blank">Open IPTV stream for device casting</a></li>
+                    <li><a class="cast-to-device" href="<?php print $storm->vCumulus->iptvUrl ?>" target="_blank">Open IPTV stream for device casting</a></li>
                 </ul>
             </form>
         </div>
 
-        <div class="main-actions">
+        <div class="vcum main interface">
             <form id="slug-action" name="SLUG_Action">
-                <ul>
-                            <!--<li><input type="submit" value="Rec" name="SLUG_Action_Rec_Start_Raw" /></li>
-                    <li><input type="submit" value="Stop" name="SLUG_Action_Rec_Stop_Raw" disabled /></li>-->
-                    <li><a class="action-kill-all-feeds" href="http://<?php print $localIP ?>/slug/iot/hdhr/action/stop" target="_blank">Ask Sandy to kill all feeds and conversions</a></li>
-                </ul>
+                <div class="apps">
+                    <div class="c">
+                        <ul class="vcum-col-3">
+                            <li><input class="vcum-btn rec start" type="submit" value="Rec" name="SLUG_IOT_HDHR_Action_Rec_Start_Raw" /></li>
+                            <li><input class="vcum-btn rec stop" type="submit" value="Stop" name="SLUG_IOT_HDHR_Action_Rec_Stop_Raw" disabled /></li>
+                            <li>Ask Sandy to <input class="vcum-btn sandy killswitch" type="submit" value="Kill All Feeds" name="SLUG_ACTION_FFMPEG_KILL"></li>
+                        </ul>
+                    </div>
+                </div>
             </form>
         </div>
         -->
@@ -153,21 +165,18 @@
                 "image": "http://blog.bistorm.org/wp-content/uploads/2016/08/cropped-bistorm_background.jpg",
                 "abouttext": "BiStorm vCumulus and #ProjectSandy support are provided on Twitter through @babelfeed",
                 "aboutlink": "http://blog.bistorm.org",
-                //setTimeout(function () {}, 5000);
-                <!-- <?php # if ($app_stream == "stream") { ?> 
-                <?php # } else { ?> -->
-                 playlist: [{
+                playlist: [{
                     sources: [
                         {   
-                            file: "http://<?php print $tvIP; ?>/iptv/<?php print $app_name ?>/<?php print getChannel()?>/index.m3u8"
+                            file: "<?php print $storm->vCumulus->iptvUrl ?>"
                         },
                         
                         {
-                            file: "http://<?php print $tvIP; ?>/dash/<?php print $app_name ?>/<?php print getChannel()?>/index.mpd"
+                            file: "<?php print $storm->vCumulus->dashUrl ?>"
                             
                         },
                         {
-                            file: "rtmp://<?php print $localIP; ?>/<?php print $app_name ?>/<?php print getChannel()?>"
+                            file: "<?php print $storm->vCumulus->rtmpUrl ?>"
                         }
                     ]
                 }],

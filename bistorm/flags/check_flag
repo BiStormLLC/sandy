@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+
+flag_name="$1"
+
+if [ -z $flag_name ]; then 
+    echo "Sandy: Please pass me a flag to check."
+    exit 1;
+fi
+
+if [ ! -f $flag_name ]; then
+    echo "Sandy: flag $1 is off."
+    exit 1;
+fi
+
+echo "Sandy: flag $1 is on."

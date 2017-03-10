@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+
+flag_name="$1"
+flag_binary="$2"
+
+if [ -z $flag_name ]; then 
+    echo "Sandy: Please pass me a flag to check."
+    exit 1;
+fi
+
+if [ -z $flag_binary ]; then
+    echo "Sandy: Please tell me to set the flag to 1 or 0."
+    exit 1;
+fi
+
+if [ $flag_binary == "1" ] ||  $flag_binary == 1 ]; then
+    sudo touch "/vagrant/bistorm/flags/$flag_name"
+fi
+
+if [ $flag_binary == "0" ] ||  $flag_binary == 0 ]; then
+    sudo rm "/vagrant/bistorm/flags/$flag_name"
+fi
+
+echo "Sandy: flag $1 set to $2"
+
+exit 0

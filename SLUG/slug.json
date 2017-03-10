@@ -4,7 +4,7 @@
         "slug": {
             "web_root": "/var/www/slug",
             "iot": {
-                "sh_root": "/usr/local/bistorm/iot",
+                "sh_root": "/usr/local/bin/bistorm/iot",
                 "hdhr": {
                     "sh_root": "/usr/local/bin/bistorm/iot/hdhomerun",
                     "action": [{
@@ -21,6 +21,28 @@
                             "success": "@sandy",
                             "failure": "@sandy"
                         } 
+                    }]
+                }
+            },
+            "vcumux": {
+                "sh_root": "/usr/local/bin/bistorm",
+                "stream": {
+                    "sh_root": "/usr/local/bin/bistorm/iot/hdhomerun",
+                    "action": [{
+                        "name": "check_flag",
+                        "log": "false",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "Script error"
+                        }
+                    },
+                    {
+                        "name": "set_flag",
+                        "log": "false",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "Script error"
+                        }
                     }]
                 }
             }

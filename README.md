@@ -30,7 +30,7 @@
 
 ## PROJECT FILES: http://github.com/BiStormLLC
 
-## CURRENT VER: vCumulus UX 0.4.5 SLUG 0.1.1 SandyBox 0.4.4
+## CURRENT VER: vCumulus UX 0.5.0 SLUG 1.0.0 SandyBox 0.4.4
 
 >No, you may not see our timetables
 
@@ -127,7 +127,7 @@ Your RTMP address format is:
 
 ## vCumulus and Big Brother: "Is the heat in our cookies?"
  Just a note on analytics: BiStorm does not track your use of any streaming
- service.  We have responsible jobs here, and none of them are to monitor your activity.
+ service .  We have responsible jobs here, and none of them are to monitor your activity.
  However, we do like to know when someone is using our products.
  vCumulus, Sandy's browser UX, uses Google Analytics to track page-level analytics.
  Guess what?  So do about 90% of Web Sites, which is why they have Privacy Policies.
@@ -157,8 +157,8 @@ Recommended minimum firmware: 20161107
 
 ## Components
 ### global storm.sh : custom scripts for simplifying on-boot processes without editing via ssh
-### slug : BiStorm PHP (later, NodeJS) server-side applet for extending Sandy's guest-level communications down to /vagrant/bistorm shell and bash scripts
-  SLUG = Service Levels Under Guest (Currently Apache/PHP, later NodeJS)
+### slug : BiStorm PHP server-side applet for extending Sandy's guest-level communications down to /vagrant/bistorm shell and bash scripts
+  SLUG = Service Levels Under Guest (Currently Apache/PHP)
 ### TODO: slug.silicondust : slug plugin for detecting HDHomerun Prime on network,
   advertising channel and program listings (if server is for personal use), Web Config, etc
 ### Nginx, Apache, MongoDB, NodeJS, ReactJS (webpack and JSX with babel ES2015)
@@ -273,8 +273,15 @@ Please note that in these examples, localhost/127.0.0.1/0.0.0.0 is more likely
 
 # WHAT TO EXPECT IN THE FUTURE
 -  Video text-to-URL conversion inside vCumulus UX
--  Disruptive marking ploys to ask for your hard-earned cash
+-  Disruptive marketing ploys to ask for your hard-earned cash
 
+### 0.5.0
+    -Major refactoring and fine tuning of web server configurations
+    -Wrote 1.0.0 of SLUG router with JSON configuration
+    -Time devoted to conceptualizing test framework
+    -Ay-Sandy batch file shortcuts for future development of Windows 10 app with Cortana later
+    -Recording of live content
+    -Nginx proxied apps now have virtual directory support: (use /slug instead of :9082/ and /iptv instead of :9081/hls)
 
 ### 0.4.5
     -Split basebox, vCumulus, SLUG into different versions. No version requirements for X^nDir

@@ -4,11 +4,37 @@ namespace BiStorm\SLUG;
 
 error_reporting(E_ERROR | E_WARNING | E_PARSE);
 
+/*
+ * Note from SecOps: Do not modify the .htaccess permissions to slug.json 
+ * You might forget you've done so and then expose the server environment's 
+ * shell scripts to be discovered and potentiatially targeted maliciously.
+ * Instead, you might create an instance of Slug and run var_dump($YOUR_INSTANCE).
+ */
+
+/*
+ * CLASS SLUG 
+ *  is not static-based. Please instantiate and access properties directly.
+ *  ARGUMENTS 
+ *      $namespace is the root of slug.json.  
+ *      $app_init is an array that must contain the values below.
+ *      Think about each value as part of a URL, but is accessible via PHP.
+ *      A few included apps are given as examples.
+ *      app_init[
+ *          'app_namespace': '[iot,vcumux]', // Defined under the root namespace
+ *          'app_name': '[hdhr, stream]', // Defined under the app_namespace
+ *          'action': '[channel, check_flag]', // The action to take for the app
+ *          'args': array('value1', 'value2') // Whatever argument values to pass to shell 
+ *      ]
+ * 
+ *      NOTE: - the shell script must accept regular string values, usually contained in "$1" and "$2"
+ * 
+ */
 class Slug {
-    public function __construct($namespace = "bistorm"){
+    public function __construct($namespace = "bistorm", $app_init = array()){
         ## Properties
         $this->json_root = $namespace;
         $this->sh_root = "";
+        $this->slug_response = "";
         $this->slug_root = "";
         $this->slug_response = "";
         $this->slug_namespaces = array();
@@ -23,127 +49,166 @@ class Slug {
         $this->path = $_SERVER['REQUEST_URI'];
         $this->actions = new \stdClass();
         $this->action = new \stdClass();
-        $this->action_args = array();
+        $this->error = 0;
         
         $slug_body = new \stdClass();
         
         ## STEP 1: Import slug.json
-            $conf = file_get_contents('/var/www/slug/slug.json');
-            $obj_conf = json_decode($conf);
-            try{
-               $this->{$namespace} = $obj_conf->{$namespace};
-            } catch (Exception $ex) {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"error\":\"Fore 0 fore! Swing but no hit!\"}}}";
-                return $ex;
-            }
+        $conf = file_get_contents('/var/www/slug/slug.json');
+        $obj_conf = json_decode($conf);
+        try{
+           $this->{$namespace} = $obj_conf->{$namespace};
+        } catch (Exception $ex) {
+            http_response_code(404);
+            $this->slug_response = "{\"slug\":{\"msg\":{\"error\":\"Fore 0 fore! Swing but no hit!\"}}}";
+            $this->error = 1;
+            return $ex;
+        }
         
-        ## STEP 2: PARSE URL PATH AS ARRAY 
-            $this->path_sectors = explode("/", $this->path);
-            array_shift($this->path_sectors); // nginx proxy doesn't push '/slug/'
-            $sector_size = sizeof($this->path_sectors);
-            $last_sector = explode("?", $this->path_sectors[$sector_size-1]);
-            $this->path_sectors[$sector_size-1] = $last_sector[0];
-
+        ## STEP 2: PARSE URL PATH AS ARRAY or VALIDATE $app_init as OUR URL
+        $this->path_sectors = explode("/", $this->path);
+        array_shift($this->path_sectors); 
+        $sector_size = sizeof($this->path_sectors);
+        $last_sector = explode("?", $this->path_sectors[$sector_size-1]);
+        $this->path_sectors[$sector_size-1] = $last_sector[0];
+        
+        # Validate and use $app_init (if it has been passed) instead of url
+        if ( ! empty($app_init) ) {
+            $this->path_sectors = array();
+            try{
+                $this->path_sectors = array('', $app_init['app_namespace'], $app_init['app_name'], 'action', $app_init['action']);
+            } catch (Exception $ex) {
+                throw new Exception("SLUG __METHOD__: app_init was passed in, but Slug could not contstruct an executable path.");
+            }
+            if( ! empty($app_init['args']) ) {
+                foreach ( $app_init['args'] as $arg ) {
+                    array_push($_GET, $arg);
+                }
+            }
+            $this->path = implode('/', $this->path_sectors);
+        }
         
         ## STEP 3: Use getters and setters to parse JSON-PHP object
-            ## Set shell executable root directory
-            $this->sh_root = $this->{$namespace}->sh_root;
+        ## Set shell executable root directory
+        $this->sh_root = $this->{$namespace}->sh_root;
 
-            ## Set temporary object body for traversing slug apps
-            $slug_body = $this->getSlugBody( $namespace );
-        
-            ## Set slug local directory root
-            $this->slug_root = $slug_body->web_root;
-        
-            ## Set the slug-specific namespaces for apps to prop slug_namespaces (i.e. [iot])
-            $this->setSlugAppNamespaces( $slug_body );
-        
-            ## Verify if an namespace exists in the url
-            if( ! $this->verifyAppNamespace( $this->slug_namespaces ) ) {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"error\": '" . $this->path_sectors[1] . "/ did not match any slug namespaces.'}}}";
-                return false;
-            }
-            
-            ## Set the validated slug namespace
-            $this->setCurrentAppNamespace( $this->slug_namespaces );
-            
-            ## Set the webroot of the namespaced discovered App
-            $this->setSlugNamespaceWebRoot( $slug_body, $this->slug_namespaces );
-        
-            ## Set the slug_apps object to the app listings under the slug namespace
-            $this->setSlugAppsBody( $slug_body, $this->slug_namespace );
-        
-            ## Set the app directives 
-            $this->setSlugAppDirectives( $this->slug_apps );
-            
-            ## Verify if an app name exists in the url
-            if( ! $this->verifyAppPath( $this->slug_app_directives ) ) {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"error\": '" . $this->path_sectors[2] . "/ did not match any slug apps.'}}}";
-                return false;
-            }
-            
-            ## Set the verified app name
-            $this->setSlugAppName( $this->slug_app_directives );
-            
-            ## Set the current app's web root
-            $this->setSlugAppWebRoot( $this->slug_apps, $this->slug_app_name ); 
-            
-            ## Set the app execution directory
-            $this->setSlugAppExecutionDir( $this->slug_apps, $this->slug_app_name );
-            
-            ## Set the app action directives
-            $this->setSlugAppActionDirectives( $this->slug_apps, $this->slug_app_name );
-            
-            ## Set the current app action
-            $this->setSlugAppActions( $this->slug_apps, $this->slug_app_name );
-                        
-            
-            ## Verify if an app action exists in the url
-            if( ! $this->verifyAppActionPath( $this->slug_app_action_directives ) ) {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"error\": '" . $this->path_sectors[2] . ": Your request did not match any slug app actions.'}}}";
-                return false;    
-            }
+        ## Set temporary object body for traversing slug apps
+        $slug_body = $this->getSlugBody( $namespace );
 
-            
-            ## Set the current action as object
-            $this->setSlugAppAction( $this->slug_app_action_directives );
+        ## Set slug local directory root
+        $this->slug_root = $slug_body->web_root;
 
-            
-        ## STEP 4: 
+        ## Set the slug-specific namespaces for apps to prop slug_namespaces (i.e. [iot])
+        $this->setSlugAppNamespaces( $slug_body );
+
+        ## Verify if an namespace exists in the url
+        if( ! $this->verifyAppNamespace( $this->slug_namespaces ) ) {
+            http_response_code(404);
+            $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . $this->path_sectors[1] . "/ did not match any slug namespaces.'}}}";
+            $this->error = 1;
+            return false;
+        }
+
+        ## Set the validated slug namespace
+        $this->setCurrentAppNamespace( $this->slug_namespaces );
+
+        ## Set the webroot of the namespaced discovered App
+        $this->setSlugNamespaceWebRoot( $slug_body, $this->slug_namespaces );
+
+        ## Set the slug_apps object to the app listings under the slug namespace
+        $this->setSlugAppsBody( $slug_body, $this->slug_namespace );
+
+        ## Set the app directives 
+        $this->setSlugAppDirectives( $this->slug_apps );
+
+        ## Verify if an app name exists in the url
+        if( ! $this->verifyAppPath( $this->slug_app_directives ) ) {
+            http_response_code(404);
+            $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . $this->path_sectors[2] . "/ did not match any slug apps.'}}}";
+            $this->error = 1;
+            return false;
+        }
+
+        ## Set the verified app name
+        $this->setSlugAppName( $this->slug_app_directives );
+
+        ## Set the current app's web root
+        $this->setSlugAppWebRoot( $this->slug_apps, $this->slug_app_name ); 
+
+        ## Set the app execution directory
+        $this->setSlugAppExecutionDir( $this->slug_apps, $this->slug_app_name );
+
+        ## Set the app action directives
+        $this->setSlugAppActionDirectives( $this->slug_apps, $this->slug_app_name );
+
+        ## Set the current app action
+        $this->setSlugAppActions( $this->slug_apps, $this->slug_app_name );
+
+        ## Verify if an app action exists in the url
+        if( ! $this->verifyAppActionPath( $this->slug_app_action_directives ) && $this->slug_response == "" ) {
+            http_response_code(404);
+            $this->error = 1;
+            $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . $this->path_sectors[2] . ": Your request did not match any slug app actions.'}}}";
+            return false;    
+        }
+
+        ## Set the current action as object
+        $this->setSlugAppAction( $this->slug_app_action_directives );
         
-        ## STEP 5: Unset json that shouldn't be public
-        #unset( $this->{$namespace} );
-        #unset ( $this->slug_apps );
+        if(empty((array)$this->action) && $this->slug_response == "") {
+            $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"No action has been set for this directive.\"}}}";  
+        }
+        
+        ## STEP 4: Unset json that shouldn't be public
+        unset( $this->{$namespace} );
+        unset ( $this->slug_apps );
+        unset ( $this->actions );
         
     }
     
-    public function exec() {
-        if(empty((array)$this->action)) {
-            $this->slug_response = "{\"slug\":{\"msg\":{\"error\": 'No action has been set for this directive.'}}}";  
+    public function exec($response = true) {
+
+        if( $response && $this->slug_response != "") {
+            $this->output();
+            return $this;
         }
+        
         ini_set('max_execution_time', 60*1);
         
         $args = $this->getActionArgs();
+
         $args_str = implode(" ", $args);
 
         $script = $this->slug_app_exec_dir . "/" . $this->action->name;
-        
-        $output = shell_exec( "bash " . $script . " " . "{$args_str}" );
-        
-        if ( $output == "" || $output === NULL) {
-            if ($this->action->msg->failure== "@sandy") {
+
+        $output = shell_exec( 'bash ' . $script . ' ' .  $args_str );
+
+        // Failure block
+        if ( $output == NULL ) {
+            if ($this->action->msg->failure == "@sandy") {
                 $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . trim(urlencode($output)) . "\"}}}";
             } else {
                 $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . trim($this->action->msg->failure) . "\"}}}";
             }
+            if ( $response ) {
+                $this->output();
+            }
+            return $this;
         }
         
+        // Success block
         if ($this->action->msg->success == "@sandy") {
             $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \"" . trim(urlencode($output)) . "\"}}}";
         } else {
             $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \"" . trim($this->action->msg->success) . "\"}}}";
         }
-        $this->output();
+        
+        if ( $response ) {
+            $this->output();
+        }
+        
+        return $this;
+        
     }
     
     public function output( $output_str = "") {
@@ -153,7 +218,6 @@ class Slug {
         } else {
             echo (string)$output_str;
         }
-        
     }
     
     ##
@@ -167,15 +231,20 @@ class Slug {
         try{
            return $this->{$namespace}->slug;
         } catch (Exception $ex) {
-            $this->slug_response = "{\"slug\":{\"msg\":{\"error\":'Fore 0 fore! Swing but no hit!'}}}";
+            $this->slug_response = "{\"slug\":{\"msg\":{\"error\":\"Fore 0 fore! Swing but no hit!\"}}}";
             return false;
         }
     }
     
-    private function getActionArgs() {
+    private function getActionArgs( ) {
         $args = array();
-        foreach( $_GET as $arg => $val ) {
+        if( empty($this->args) ) {
+            $this->args = $_GET;
+        }
+        foreach( $this->args as $arg => $val ) {
             if( strpos( $arg, "arg" ) !== FALSE ) {
+                $arg = trim($arg);
+                $arg = urlencode($arg); 
                 array_push( $args, $val );
             }
         }
@@ -275,7 +344,7 @@ class Slug {
     }
     
     public function setSlugAppAction( $action_directives ) {
-        foreach ( $action_directives as $directive ) {
+        foreach ( $action_directives as $directive ) {        
            if( strpos( $this->path, $directive ) !== FALSE ) {
                $dirs = explode( "/", $directive);
                $dir_count = sizeof($dirs);
@@ -291,8 +360,8 @@ class Slug {
         return false;
     }
     
-    public function setSlugAppExecutionDir ( $slug_apps, $slug_app_name ) {
-        $this->slug_app_exec_dir = $slug_apps->{$slug_app_name}->sh_root;
+    public function setSlugAppExecutionDir ( $slug_apps, $app_name ) {
+        $this->slug_app_exec_dir = $slug_apps->{$app_name}->sh_root;
     }
     
     ##
@@ -339,9 +408,15 @@ class Slug {
         }
         return false;
     }
+    
+    /**
+     * ACTIONS
+     */    
+    public function addActionArg($arg) {
+        $arg = trim($arg);
+        $arg = urlencode($arg); 
+        array_push( $this->args, $val );
+    }
 }
-
-$trail = new Slug('bistorm');
-$trail->exec();
 
 ?>

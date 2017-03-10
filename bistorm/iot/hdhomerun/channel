@@ -51,10 +51,10 @@ fi
 # Kill all media conversion processes on the server
 count=`ps aux | grep -v "grep" | grep -c ffmpeg`
 # ffmpeg daemon has 1 PIDs at all times.
-if [ "${count}" -le 2 ]; then
+if [ "${count}" -le 1 ]; then
     ## Concatenated string of all of our profile settings
     ffmpeg_string=" -s 960x540 -vcodec $p_v_codec -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -profile:v $p_v_profile -crf $p_crf -preset $p_preset -maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"  
-    /usr/local/bin/ffmpeg -y -i "http://$PRIME_IP:5004/auto/v$1?$p_homerun_custom_q" $ffmpeg_string "rtmp://localhost/c/$1" &>/dev/null 
+    /usr/local/bin/ffmpeg -y -i "http://$PRIME_IP:5004/auto/v$1?$p_homerun_custom_q" $ffmpeg_string "rtmp://localhost/c/$1" >/dev/null &
     echo -e "\nSandy: ffmpeg is running!  Do you see a stream?" 
 else
     echo "Sandy: My ffmpeg transcoding process has already begun! #TakingOverYourWorld"
