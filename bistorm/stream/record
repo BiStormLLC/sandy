@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# Description: performs curl calls to the action services for the nginx-rtmp module
+#
+
+app=$1
+stream=$2
+rec=$3
+action=$4
+
+source /usr/local/bin/bistorm/vars/sandy_ip
+
+if [ -z $app ] || [ -z $stream ] || [ -z $rec ] || [ -z $action ]; then
+    echo "Sandy: Please pass me an (1)app ([c,d..z]) (2)stream ([513,game]) (3)recorder name ([15sec,15min,audio,all]) and (4)action ([start,stop]) as arguments."
+    echo "exit with error"
+    exit 1
+fi
+
+echo "Sandy: I have received a request to $action recording of $app/$stream using the $rec recorder."
+control_url="http://$SANDY_IP/control/record/${action}?app=${app}&name=${stream}&rec=${rec}"
+echo "Sandy: Calling $control_url"
+curl $control_url
+
+echo "Sandy: My end has completed.  Raw recorded .flv files are temporarily stored in /vagrant/bistorm/convert directories"
+

@@ -27,7 +27,27 @@
             "vcumux": {
                 "sh_root": "/usr/local/bin/bistorm",
                 "stream": {
-                    "sh_root": "/usr/local/bin/bistorm/iot/hdhomerun",
+                    "sh_root": "/usr/local/bin/bistorm/stream",
+                    "action": [
+                    {
+                        "name": "set_active_stream_vars",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "Script error"
+                        }
+                    },
+                    {
+                        "name": "record",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "Script error"
+                        }
+                    }]
+                },
+                "flags": {
+                    "sh_root": "/usr/local/bin/bistorm/flags",
                     "action": [{
                         "name": "check_flag",
                         "log": "false",

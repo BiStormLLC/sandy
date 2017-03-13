@@ -34,8 +34,20 @@
         ),
         'check_flag' => array(
             'app_namespace' => 'vcumux',
-            'app_name' => 'stream',
+            'app_name' => 'flags',
             'action' => 'check_flag',
+            'args' => array(),
+        ),
+        'set_stream_vars' => array(
+            'app_namespace' => 'vcumux',
+            'app_name' => 'stream',
+            'action' => 'set_active_stream_vars',
+            'args' => array(),
+        ),
+        'record' => array(
+            'app_namespace' => 'vcumux',
+            'app_name' => 'stream',
+            'action' => 'record',
             'args' => array(),
         )
     );
@@ -47,6 +59,22 @@
     $env = $storm->getVCumEnvName();
     $storm->setVCumEnv($env, $storm->path); // $storm->vCumulus
     $storm->addSlugToEnv($storm->vCumulus, $slug_required_apps);
+    
+    $storm->vCumulus->active_streams = $storm->getLiveStreamUrls();
+    $storm->vCumulus->open_channels = $storm->getOpenChannels();
+
+    if( ! empty($storm->vCumulus->open_channels['hls']) ) {
+        $active_conversion = $storm->vCumulus->open_channels['hls'][0];
+        if( $storm->vCumulus->appId == 'c' && strpos($active_conversion, "c/") !== FALSE ) {
+            if ( $storm->vCumulus->appId . "/" . $storm->vCumulus->channel != $active_conversion ) {
+                header("Location: " . "http://" . $storm->getSandyTvIp() . "/" . $storm->vCumulus->open_channels['hls'][0]);
+                die();
+            }
+        }  
+    }
+    
+    // Get an array of active streams
+    //if( $storm->isSandyStreaming() );
 
 ?>
 
@@ -65,38 +93,190 @@
         <link rel="stylesheet" href="../public/css/normalize.min.css" />
         <script src="//content.jwplatform.com/libraries/LwXnbJyH.js"></script>
         <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
-        
-        <script>
-       
-            var app_stream = "<?php echo $storm->vCumulus->streamType ?>";
-
-            $(document).ready(function () {
-                // Set click handlers for Rec buttons
-                var frm = $('form[name="frmSave"]');
+        <script type="text/javascript">
+            <!--
+            
+            var app_stream = "<?php print $storm->vCumulus->streamType ?>";
+            var vcum = {"ux":<?php print $storm->vCumulus->getEnvAsJson() ?>};
+            
+            jQuery(document).ready(function () {
+                var slug = {
+                    'response': '',
+                    'status': '',
+                    'app_url': '',
+                    'actions': {},
+                    'buttons': [],
+                    'args': "",
+                    'load_app_url': function( app_url, args ) {
+                        if(typeof args != 'undefined' && typeof args[0] != 'undefined') {
+                            var arg_str = "?";
+                            var i = 1;
+                            for(arg in args) {
+                                arg_str += 'arg' + i + "=" + args[arg] + "&";
+                                i++;
+                            }
+                        } else {
+                            arg_str = "";
+                        }
+                        this.app_url = app_url + arg_str;
+                    },
                 
-                if(app_stream == 'tv') {                   
+                    'call': function( callback ) {
 
-                    jQuery.ajax({
-                        'url': '<?php print $storm->vCumulus->channelActivationUrl ?>',
-                        'error': function(xhr, status, e){
-                            if(console)console.log("Stream's not here, man. There was an error activating the stream through SLUG or the Gateway took too long to respond.");
-                        },
-                        timeout: 3000
-                    })
+                        jQuery.ajax({
+                            'url': this.app_url,
+                            'cache': false,
+                            'timeout': 3000,
+                            'success': function(data, status, xhr) {
+                                if(typeof data.slug != 'undefined' && data.slug.msg != 'undefined') {
+                                    slug.response = data.slug.msg;
+                                }
+                                if( typeof slug.response.error != "undefined") {
+                                    slug.status = '500';
+                                    slug.response = slug.app_url + " call failed with status " + slug.status + ": " + decodeURIComponent(slug.response.error).replace(/\+/g,' ');
+                                    if(console)console.log(slug.response);
+                                } else if (typeof slug.response.SLUG != "undefined") {
+                                    slug.status = '200';
+                                    slug.response = slug.app_url + " call succeeded with status " + slug.status + ": " + decodeURIComponent(slug.response.SLUG).replace(/\+/g, ' ');
+                                    if(console)console.log(slug.response);
+                                }
+                                if (typeof callback == 'function') callback();
+                            },
+                            'error': function(xhr, status, e){
+                                slug.response = "SLUG call failed.";
+                                slug.status = "error";
+                            },
+                            timeout: 3000
+                        });
+                    }  
+                };
+                
+                slug.buttons = jQuery("input[slug^='SLUG']");
+                jQuery(slug.buttons).each(function(){
+                    var url_parts = jQuery(this).attr('slug').split('__')[0].split('_');
+                    var action = jQuery(this).attr('slug').split('__')[1];
+                    if ( typeof url_parts !== 'undefined' && typeof url_parts[1] !== 'undefined' ) {
+                        for (part in url_parts) {
+                            part = part.toLowerCase();
+                        }
+                        var argsStr = jQuery(this).attr('args');
+                        if ( typeof argsStr != 'undefined' ) {
+                           args = argsStr.split(',');
+                        }
+                        var url = '/' + url_parts.join('/').toLowerCase() + '/action/' + action.toLowerCase();
+                        slug.actions[this.name] = url;
+                        if( typeof args != 'undefined' && typeof args[0] != 'undefined') {
+                            qs = '?';
+                            for( var i=0; i < args.length; i++ ) {
+                                if(i == 0) {
+                                    qs += 'arg' + (i+1) + '=' + args[i];
+                                } else {
+                                    qs += '&arg' + (i+1) + '=' + args[i];
+                                }   
+                            }
+                        } else {
+                            qs = '';
+                        }
+                        url += qs;
+                        if(console) console.log( 'SLUG attached to ' + this.name + ': ' + url);
+                        jQuery(this).unbind().on('click', function(){
+                            slug.load_app_url(url);
+                            slug.call();
+                        });
+                    }
+                });
+                
+                // GENERIC CONTROL OF SELECTS
+                slug.selects = jQuery("select[slug^='SLUG']");
+                jQuery(slug.selects).each(function(){
+                    jQuery(this).unbind().change(function(){
+                        var option = jQuery("option:selected", this);
+                        var url = jQuery(this).attr('url');
+                        slug.load_app_url(url);
+                        slug.call();
+                    });
+                });
+                
+                // Set the channel selector to the channel requested in the url
+                jQuery("select[name=SLUG_IOT_HDHR__channel]").val(vcum.ux.channel);
 
+                // Request the selected channel using SLUG
+                slug.load_app_url( vcum.ux.channelActivationUrl );
+                slug.call();  
+                
+                // CHANNEL SELECTION ACTIONS OVERRIDES GENERIC CONTROLS
+                jQuery("select[slug=SLUG_IOT_HDHR__channel]").unbind().on('click', 
+                    function() {
+                        slug.load_app_url("http://" + vcum.ux.server_name + "/slug" + vcum.ux.slug.hdhr_stop.path);
+                        slug.call();
+                        
+                    }
+                ).on('change', function(){
+                    var option = jQuery("option:selected", this);
+                    window.location = option.attr('url');
+                });
+                
+                // REC BUTTON ACTIONS
+                jQuery("input[name=Start]").on('click', 
+                    function() {
+                        jQuery("input[name=Start]").attr('disabled',true);
+                        jQuery("input[name=Stop]").removeAttr('disabled');
+                    }
+                )
+                
+                jQuery("input[name=Stop]").on('click', 
+                    function() {
+                        jQuery("input[name=Stop]").attr('disabled',true);
+                        jQuery("input[name=Start]").removeAttr('disabled');
+                    }
+                )
+                
+                if(console) {
+                    console.log(vcum);
+                    console.log(slug);
                 }
+                
             }); 
            -->
+
         </script>
         
         <style>
             a:hover { text-decoration: none; }
-            .main-container h1 { color: white; }
-            .main-navigation { font-size: 1.4em; }
-            .main-actions { font-size:1.2em; }
+            .main { color: white; }
+            .header { height: 0px; }
+            .container h1 { color: white; font-size:1.0em; }
+            .navigation { font-size: 0.9em; }
+            .actions { font-size:1.2em; }
+            .vcum-btn { color: black; }
+            .vcum-btn:disabled { color: gray; }
+            .vcum-sel { color: black; width: 50%; }
+
+            .killswitch {  }
             
-            .footer-container .wrapper { text-align:center; }
-            .footer-container .wrapper .info { color:white; }
+            .footer-container .wrapper { text-align: center; padding: 20px; }
+            .footer-container .wrapper .info { color: white; }
+            .footer-container .wrapper .paypal { color: white; }
+            .vcum-col-3 {
+                width: 100%;
+            }
+            .vcum-col-3 > ul {
+                padding: 0 1% 0 9%;
+                margin: 0px;
+            }
+            
+            .vcum-col-3 > ul > li {
+                display: inline-block;
+                vertical-align: top;
+                width: 30%;
+                box-sizing: border-box;
+                text-align: center;
+                padding: 8px 0;
+            }
+            
+            @media screen and (max-width: 960px) {
+
+            }
             
         </style>
     </head>
@@ -106,13 +286,7 @@
             <p class="browserupgrade">You are using a groundbreakingly <strong>outdated</strong> browser. Why?!? Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
 
-        <div class="header-container">   
-            <!-- Headless
-                </head></header>
-            -->
-        </div>
-
-        <div class="main-container">
+        <div class="main container">
             <div class="main wrapper clearfix">		
                 <div id="stream" width="100%" height="auto">				
                     <!-- for live streaming source -->
@@ -121,31 +295,53 @@
                     </video> 
                 </div>
             </div>
-            <h1 class="vcum-env"><?php print $storm->vcumulus->env ?></h1>
+            <h1 class="vcum-env"><?php print $storm->vCumulus->env ?></h1>
         </div>
         
-        <div class="main-navigation">
+        <div class="main navigation">
             <form id="vcumulus-nav" name="navigation">
                 <ul>
-                    <li><a class="cast-to-device" href="<?php print $storm->vCumulus->iptvUrl ?>" target="_blank">Open IPTV stream for device casting</a></li>
+                    <?php
+                        if( ! empty( $storm->vCumulus->active_streams) ) {
+                           foreach( $storm->vCumulus->active_streams as $stream_url ) {
+                                print "<li>Open <a href='" . $stream_url . "'>" . $stream_url . "</a> for device casting.</li>";
+                           }
+                        } else {
+                           print "<li>Open <a href='" . $storm->vCumulus->iptvUrl . "'>" . $storm->vCumulus->iptvUrl . "</a> for device casting.</li>";
+                        }
+                    ?>
                 </ul>
             </form>
         </div>
 
         <div class="vcum main interface">
-            <form id="slug-action" name="SLUG_Action">
-                <div class="apps">
-                    <div class="c">
-                        <ul class="vcum-col-3">
-                            <li><input class="vcum-btn rec start" type="submit" value="Rec" name="SLUG_IOT_HDHR_Action_Rec_Start_Raw" /></li>
-                            <li><input class="vcum-btn rec stop" type="submit" value="Stop" name="SLUG_IOT_HDHR_Action_Rec_Stop_Raw" disabled /></li>
-                            <li>Ask Sandy to <input class="vcum-btn sandy killswitch" type="submit" value="Kill All Feeds" name="SLUG_ACTION_FFMPEG_KILL"></li>
-                        </ul>
-                    </div>
+            <form id="slug-action" name="slug_actions">
+                <div class="vcum-col-3">
+                    <ul class="">
+                        <li>
+                            <span>Record to X^nDir</span><br>
+                            <input class="vcum-btn rec start" type="button" value="Rec" args="<?php print $storm->vCumulus->appId . ',' . $storm->vCumulus->channel . ',' . 'all' . ',' . 'start' ?>" slug="SLUG_VCUMUX_STREAM__record" name="Start" />
+                            <input class="vcum-btn rec stop" type="button" value="Stop" args="<?php print $storm->vCumulus->appId . ',' . $storm->vCumulus->channel . ',' . 'all' . ',' . 'stop' ?>" slug="SLUG_VCUMUX_STREAM__record" name="Stop" disabled />
+                        </li>
+                        <li>
+                            <span>Change to Channel...</span><br>
+                            <select class="vcum-sel channel" slug="SLUG_IOT_HDHR__channel" name="Channel">
+                                <option default value="0">Channel</option>
+                                <?php
+                                    foreach ( $storm->vCumulus->channel_lineup as $channel ) {
+                                        $iptvUrl = "http://" . $storm::getSandyTvIp() . "/c/" . $channel->GuideNumber;
+                                        echo "<option label=\"" . $channel->GuideNumber . ' > ' . $channel->GuideName . "\" name=\"" . $channel->GuideNumber . "\" url=\"" . $iptvUrl . "\" action=\"" . $channel->URL . "\" value=\"" . $channel->GuideNumber . "\">" . $channel->GuideNumber . "</option>";
+                                    }
+                                ?>
+                            </select>
+                        </li>
+                        <li><span>Ask Sandy to</span><br>
+                            <input class="vcum-btn killswitch" type="button" value="Kill All Feeds" slug="SLUG_IOT_HDHR__stop" name="KillSwitch"></li>
+                    </ul>
                 </div>
             </form>
         </div>
-        -->
+
         <div class="footer-container">
             <footer class="wrapper">
                 <div class="info">
@@ -153,38 +349,46 @@
                         solutions provider in Tacoma, WA, bolstering our technically and talent-affirming 
                         partners through social and life-enriching mediums.</p>
                     <p> <a href="http://blog.bistorm.org/privacy/" target="_blank">Privacy Policy</a></p>
-                    <p> <i>You're actually in our bedroom right now.<br><a href="https://Paypal.Me/BiStormP2P/5" target="_blank">$5 to help keep the lights on?</a></i></p>
                 </div>
+                <p><a class="paypal" href="https://Paypal.Me/BiStormP2P/5" target="_blank">$5 to help keep the lights on?</a></p>   
             </footer>
         </div>
 
-        <!-- The script below is for when we are live streaming -->
         <script>
-            var playerInstance = jwplayer("stream");
-            playerInstance.setup({
-                "image": "http://blog.bistorm.org/wp-content/uploads/2016/08/cropped-bistorm_background.jpg",
-                "abouttext": "BiStorm vCumulus and #ProjectSandy support are provided on Twitter through @babelfeed",
-                "aboutlink": "http://blog.bistorm.org",
-                playlist: [{
-                    sources: [
-                        {   
-                            file: "<?php print $storm->vCumulus->iptvUrl ?>"
-                        },
-                        
-                        {
-                            file: "<?php print $storm->vCumulus->dashUrl ?>"
-                            
-                        },
-                        {
-                            file: "<?php print $storm->vCumulus->rtmpUrl ?>"
-                        }
-                    ]
-                }],
-                <?php # }  ?>
-                "width": "100%",
-                "mute": true,
-                "preload": "metadata"
-            });
+            loadPlayer = function( playlist ) {
+                if ( typeof playlist == 'undefined') {
+                    playlist = [{
+                        sources: [
+                            {   
+                                'label': 'iptv',
+                                'file': "<?php print $storm->vCumulus->iptvUrl ?>"
+                            },
+                            {
+                                'label': 'dash',
+                                'file': "<?php print $storm->vCumulus->dashUrl ?>"
+
+                            },
+                            {
+                                'label': 'flash',
+                                'file': "<?php print $storm->vCumulus->rtmpUrl ?>"
+                            }
+                        ]
+                    }]
+                } 
+                player = jwplayer("stream");
+                player.setup({
+                    "image": "http://blog.bistorm.org/wp-content/uploads/2016/08/cropped-bistorm_background.jpg",
+                    "abouttext": "BiStorm vCumulus and #ProjectSandy support are provided on Twitter through @babelfeed",
+                    "aboutlink": "http://blog.bistorm.org",
+                    "playlist": playlist,
+                    "width": "100%",
+                    "mute": true,
+                    "preload": "metadata"
+                });
+            }();
+            jQuery(document).ready(function() {
+                vcum.ux.player = player;
+            })
         </script>
 
         <!-- Google Analytics -->

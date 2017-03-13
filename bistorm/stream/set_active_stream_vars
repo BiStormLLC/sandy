@@ -1,0 +1,82 @@
+#!/bin/bash
+#
+# Description: Checks for existing streams and sets array as a global var
+#
+
+if [ ! -d /var/www/hls ]; then
+    echo "Sandy: I could not access the hls temp directory."
+fi
+
+if [ ! -d /var/www/dash ]; then
+    echo "Sandy: I could not access the dash temp directory."
+fi
+
+export_head="#!/bin/bash"
+export_content="streams='"
+## HLS
+cd /var/www/hls;
+apps=($(ls -d */));
+
+temp_root="/var/www/hls/"
+for d in "${apps[@]}"; do
+    if [ ! -d $d ]; then
+        continue;
+    fi
+
+    cd $d
+
+    channels=($(ls -d */))
+
+    if [ -z $channels[0] ]; then
+        sudo rm /vagrant/bistorm/vars/
+    fi
+
+    for c in "${channels[@]}"; do
+        # Remove the trailing '/' before exporting
+        if [ "${channels[-1]}" == "$c" ]; then
+            c="${c::-1}"
+            export_content="${export_content}${d}${c}"
+        else 
+            export_content="${export_content}${d}${c};"
+        fi
+    done
+done
+export_content="$export_content'"
+
+# Export HLS_STREAMS to hls_streams var file
+export_footer='export HLS_STREAMS=$streams; echo "Sandy: ENV ##HLS_STREAMS## is set. @$HLS_STREAMS"'
+echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/stream/hls_streams
+
+## DASH
+cd /var/www/dash;
+apps=($(ls -d */));
+if [ -z $apps[0] ]; then
+    continue;
+fi
+export_content="streams='"
+temp_root="/var/www/dash/"
+for d in "${apps[@]}"; do
+    if [ ! -d $d ]; then
+        continue;
+    fi
+
+    cd $d
+
+    channels=($(ls -d */))
+
+    for c in "${channels[@]}"; do
+        # Remove the trailing '/' before exporting
+        if [ "${channels[-1]}" == "$c" ]; then
+            c="${c::-1}"
+            export_content="${export_content}${d}${c}"
+        else 
+            export_content="${export_content}${d}${c};"
+        fi
+    done
+done
+export_content="$export_content'"
+
+# Export HLS_STREAMS to hls_streams var file
+export_footer='export DASH_STREAMS=$streams; echo "Sandy: ENV ##DASH_STREAMS## is set. @$DASH_STREAMS"'
+echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/stream/dash_streams
+echo "Sandy: Current stream URLs set as vars."

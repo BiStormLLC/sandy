@@ -65,7 +65,7 @@ class Common {
 
         # Validate ip string before returning
         if(trim($ip) != "") {
-            return $ip;
+            return trim($ip);
         } else {
             return false;
         } 
@@ -93,40 +93,96 @@ class Common {
     # Set slug to the vCumulus Environment Object
     public static function addSlugToEnv($ux_env, $slug_required_apps) {
         $ux_env->slug = new \stdClass();
+        $ux_env->server_name = self::getSandyIp();
         foreach( $slug_required_apps as $app_name => $app_body ) {
             $ux_env->slug->{$app_name} = new \BiStorm\SLUG\Slug('bistorm', $app_body);
         }
     }
     
     # Usecase: Redirect to an existing conversion channel if one is running in the 'c' app 
-    # $app_name = ['c','d'...'z']
-    public static function getLiveStreamUrls($app_name) {
+    public function getOpenChannels() {
+        $urls = array();
         // SLUG integration
         if( ! $this->isSlugEnabled() ) {
-            throw new Exception('SLUG is not enabled for this environment.');
+            throw new \Exception('SLUG is not enabled for this environment.');
         }
-        
+        try{
+            // Set active stream vars for hls and dash so we know what's currently active
+            $this->vCumulus->slug->set_stream_vars->exec(false);
+            ## Call the set_active_stream_vars through a new slug 'stream' action
+            $active_hls_var = file_get_contents('/usr/local/bin/bistorm/stream/hls_streams');
+            $active_hls_val = split("streams='", $active_hls_var)[1];
+            $active_hls_val = split("'", $active_hls_var)[1];
+            $active_dash_var = file_get_contents('/usr/local/bin/bistorm/stream/dash_streams');
+            $active_dash_val = split("streams='", $active_dash_var)[1];
+            $active_dash_val = split("'", $active_dash_var)[1];
+            $hls_streams = explode(';', $active_hls_val);
+            $dash_streams = explode(';', $active_dash_val);
+            
+            // Some cleanup
+            foreach( $hls_streams as $stream ) {
+                if($stream == "") {
+                    unset($hls_streams[$stream]);
+                }
+            }
+            foreach( $dash_streams as $stream ) {
+                if($stream == "") {
+                    unset($dash_streams[$stream]);
+                }
+            }     
+        } catch (\Exception $ex) {
+            return false;
+        }
+
+        return( array('hls' => $hls_streams, 'dash' => $dash_streams) );
+    }
+    
+    public function getLiveStreamUrls() {
+        $streams = $this->getOpenChannels();
+        $urls = array();
+        if( ! empty($streams['hls']) ) {
+            foreach( $streams['hls'] as $stream ) {
+                if( $stream == "" ) {
+                    continue;
+                }
+                $stream_url = 'http://' . $this->getSandyTvIp() . '/iptv/' . $stream . '/index.m3u8';
+                array_push($urls, $stream_url);
+            }
+        }
+        if( ! empty($streams['dash']) ) {
+            foreach( $streams['dash'] as $stream ) {
+                if( $stream == "" ) {
+                    continue;
+                }
+                $stream_url = 'http://' . $this->getSandyTvIp() . '/iptv/' . $stream . '/index.mpd';
+                array_push($urls, $stream_url);
+            }
+        }  
+        return $urls;
     }
 
-    # SLUG integration to determine if NGINX is currently serving RTMP content
-    public static function isSandyStreaming() {
+    # SLUG integration to determine if NGINX is currently serving HLS or DASH content
+    public function isSandyStreaming() {
+        $streams = $this->getLiveStreamUrls();
         // SLUG integration
-        if( ! $this->isSlugEnabled() ) {
-            throw new Exception('SLUG is not enabled for this environment.');
-        }
+        if( empty($streams) ) {
+            return false;
+        } 
+        return true;
     }
 
     # SLUG integration to determine if FFMPEG processes are running
-    public static function isSandyConverting() {
+    public function isSandyConverting() {
         // SLUG integration
         if( ! $this->isSlugEnabled() ) {
             throw new Exception('SLUG is not enabled for this environment.');
         }
+        // TODO
     } 
     
-    # Is SLUG enabled
+    # Is SLUG enabled for the attached environment?
     public function isSlugEnabled() {
-        if ( is_object($this->slug) ) {
+        if ( is_object($this->vCumulus->slug) ) {
             return true;
         }
         return false;

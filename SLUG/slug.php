@@ -184,23 +184,48 @@ class Slug {
         $output = shell_exec( 'bash ' . $script . ' ' .  $args_str );
 
         // Failure block
-        if ( $output == NULL ) {
-            if ($this->action->msg->failure == "@sandy") {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . trim(urlencode($output)) . "\"}}}";
-            } else {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . trim($this->action->msg->failure) . "\"}}}";
+        if ( $this->action->log !== "false" ) {
+            if ( $output == NULL ) {
+                if ($this->action->msg->failure == "@sandy") {
+                    $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . trim(urlencode($output)) . "\"}}}";
+                } else {
+                    $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . trim($this->action->msg->failure) . "\"}}}";
+                }
+                
+                if ( $response ) {
+                    $this->output();
+                }
+                return $this;
             }
-            if ( $response ) {
-                $this->output();
+        } else {
+            if ( $output == NULL ) {
+                if ($this->action->msg->failure == "@sandy") {
+                    $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"Sandy says there was an error, but it\'s a private affair.\"}}}";
+                } else {
+                    $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"A call was made, and something happened, but it was not what you humans call \'success\'.\"}}}";
+                }
+                
+                if ( $response ) {
+                    $this->output();
+                }
+                return $this;
             }
-            return $this;
         }
         
+        
         // Success block
-        if ($this->action->msg->success == "@sandy") {
-            $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \"" . trim(urlencode($output)) . "\"}}}";
+        if ( $this->action->log !== "false" ) {
+            if ( $this->action->msg->success == "@sandy" ) {
+                $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \"" . trim(urlencode($output)) . "\"}}}";
+            } else {
+                $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \"" . trim($this->action->msg->success) . "\"}}}";
+            }
         } else {
-            $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \"" . trim($this->action->msg->success) . "\"}}}";
+            if ( $this->action->msg->success == "@sandy" ) {
+                $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \" Sandy says this was a good call, but private. \"}}}";
+            } else {
+                $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \" Successful call, but the response is set to private. \"}}}";
+            }
         }
         
         if ( $response ) {

@@ -1,4 +1,5 @@
- # Queue manager for ffmpeg
+#!/bin/bash 
+# Queue manager for ffmpeg
 pipe=/tmp/ffmpeg
 trap "rm -f $pipe" EXIT
 # creating the FIFO    

@@ -83,6 +83,8 @@ do
         echo "Sandy: I am encoding the raw $latest_stream_base to $media_dir/audio/live/$profile/$foldername/$aacfn.$p_fileext ... "
      
         $save_loc="$media_dir/audio/live/$profile/$foldername"
+        # Create location to store audio
+        mkdir -p "$save_loc"
         outputfile="$save_loc/$aacfn.$p_fileext"
         
         # Import ffmpeg profile variables for this folder
@@ -101,8 +103,7 @@ do
         # Convert file in working/profile directory
         if [ "$p_custom_string" == "" ]; then 
             /usr/local/bin/ffmpeg -y -i $filename -vn $ffmpeg_string "$d/$aacfn-$profile.$p_fileext" > /tmp/ffmpeg 2>/vagrant/logs/ffmpeg_audio_$profile-log.txt
-            # Create location to store audio
-            mkdir -p "$save_loc"
+
             # Copy completed file to media directory
             mv "$d/$aacfn-$profile.$p_fileext" "$outputfile"
             echo -e "Sandy: $outputfile has completed conversion and has been logged.\n"

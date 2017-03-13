@@ -39,7 +39,6 @@
  * 
  * VENDORS:
  *  1. jQuery 1.11.2
- *  2. jquery-magnific
  * 
  * NOTE:
  *  BiStorm does not implement jQuery globally (bad practice)

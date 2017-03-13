@@ -18,22 +18,11 @@ fi
 # Kill all media conversion processes on the server
 count=`ps aux | grep -v "grep" | grep -c ffmpeg`
 # ffmpeg daemon has 1 PIDs at all times.
-if [ "${count}" -le 1 ]; then
+if [ "${count}" -le 2 ]; then
     echo "Sandy: I wasn't running any conversions. #JustSoYouKnow"
 else
     sudo killall ffmpeg &&
     echo "Sandy: My ffmpeg processes have been halted."
-fi
-
-# Clear Nginx if RTMP ports 1935 or 1981 are open
-rtmp_guest_active=$(netstat -n | grep :1935 | grep ESTABLISHED )
-rtmp_host_active=$(netstat -n | grep :1901 | grep ESTABLISHED )
-if [ ! -z "$rtmp_guest_active" ] || [ ! -z "$rtmp_host_active" ]; then
-    sudo killall nginx
-    sudo nginx &&
-    echo "Sandy: My RTMP server has been restarted."
-else 
-    warning=1
 fi
 
 #Iterate through all directories passed in
@@ -55,3 +44,4 @@ echo "Sandy: Done and done!"
 
 #Free up memory
 sudo sysctl -w vm.drop_caches=3 > /dev/null
+

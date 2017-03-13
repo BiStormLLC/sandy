@@ -1,0 +1,4 @@
+#!/bin/bash 
+# Queue manager for ffmpeg
+count=`ps aux | grep -v "grep" | grep -c ffmpeg`
+echo $count
