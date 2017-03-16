@@ -30,8 +30,9 @@ error_reporting(E_ERROR | E_WARNING | E_PARSE);
  * 
  */
 class Slug {
-    public function __construct($namespace = "bistorm", $app_init = array()){
+    public function __construct($namespace = "bistorm", $app_init = array(), $response_yn = false){
         ## Properties
+        $this->response_yn = $response_yn;
         $this->json_root = $namespace;
         $this->sh_root = "";
         $this->slug_response = "";
@@ -59,9 +60,9 @@ class Slug {
         try{
            $this->{$namespace} = $obj_conf->{$namespace};
         } catch (Exception $ex) {
-            http_response_code(404);
             $this->slug_response = "{\"slug\":{\"msg\":{\"error\":\"Fore 0 fore! Swing but no hit!\"}}}";
             $this->error = 1;
+            $this->exec('', '404');
             return $ex;
         }
         
@@ -87,6 +88,11 @@ class Slug {
             }
             $this->path = implode('/', $this->path_sectors);
         }
+        # Trim off .json at the end of url if it was requested
+        if( strpos($this->path_sectors[4], ".json") !== FALSE ) {
+            $json_ext = explode(".json", $this->path_sectors[4]);
+            $this->path_sectors[4] = $json_ext[0];
+        }
         
         ## STEP 3: Use getters and setters to parse JSON-PHP object
         ## Set shell executable root directory
@@ -103,9 +109,9 @@ class Slug {
 
         ## Verify if an namespace exists in the url
         if( ! $this->verifyAppNamespace( $this->slug_namespaces ) ) {
-            http_response_code(404);
-            $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . $this->path_sectors[1] . "/ did not match any slug namespaces.'}}}";
+            $this->slug_response = (object)array('slug' => array('msg' => array('error' => "\"" . $this->path_sectors[1] . "/ did not match any slug namespaces.\"")));
             $this->error = 1;
+            $this->exec('', '404');
             return false;
         }
 
@@ -123,9 +129,9 @@ class Slug {
 
         ## Verify if an app name exists in the url
         if( ! $this->verifyAppPath( $this->slug_app_directives ) ) {
-            http_response_code(404);
-            $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . $this->path_sectors[2] . "/ did not match any slug apps.'}}}";
+            $this->slug_response = (object)array('slug' => array('msg' => array('error' => "\"" . $this->path_sectors[2] . "/ did not match any slug apps.\"")));
             $this->error = 1;
+            $this->exec('', '404');
             return false;
         }
 
@@ -146,9 +152,9 @@ class Slug {
 
         ## Verify if an app action exists in the url
         if( ! $this->verifyAppActionPath( $this->slug_app_action_directives ) && $this->slug_response == "" ) {
-            http_response_code(404);
             $this->error = 1;
-            $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . $this->path_sectors[2] . ": Your request did not match any slug app actions.'}}}";
+            $this->slug_response = (object)array('slug' => array('msg' => array('error' => "\"" . $this->path_sectors[2] . ": Your request did not match any slug app actions.\"")));
+            $this->exec('', '404');
             return false;    
         }
 
@@ -156,7 +162,10 @@ class Slug {
         $this->setSlugAppAction( $this->slug_app_action_directives );
         
         if(empty((array)$this->action) && $this->slug_response == "") {
-            $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"No action has been set for this directive.\"}}}";  
+            $this->error = 1;
+            $this->slug_response = (object)array('slug' => array('msg' => array('error' => "No action has been set for this directive.")));
+            $this->exec('', '404');
+            return false; 
         }
         
         ## STEP 4: Unset json that shouldn't be public
@@ -166,11 +175,12 @@ class Slug {
         
     }
     
-    public function exec($response = true) {
+    public function exec($response = true, $status = '200') {
 
-        if( $response && $this->slug_response != "") {
-            $this->output();
-            return $this;
+        // Output early errors, typically 404, from __construct method
+        if( ($this->response_yn || $response) && $this->slug_response != "") {
+            $this->output($status);
+            die();
         }
         
         ini_set('max_execution_time', 60*1);
@@ -181,50 +191,49 @@ class Slug {
 
         $script = $this->slug_app_exec_dir . "/" . $this->action->name;
 
-        $output = shell_exec( 'bash ' . $script . ' ' .  $args_str );
+        $exec_resp = shell_exec( 'bash ' . $script . ' ' .  $args_str );
 
         // Failure block
         if ( $this->action->log !== "false" ) {
-            if ( $output == NULL ) {
+            if ( $exec_resp == NULL ) {
                 if ($this->action->msg->failure == "@sandy") {
-                    $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . trim(urlencode($output)) . "\"}}}";
+                    $this->slug_response = (object)array('slug' => array('msg' => array('error' => "\"" . trim(urlencode($exec_resp)) . "\"")));
                 } else {
-                    $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"" . trim($this->action->msg->failure) . "\"}}}";
+                    $this->slug_response = (object)array('slug' => array('msg' => array('error' => "\"" . trim($this->action->msg->failure) . "\"")));
                 }
                 
                 if ( $response ) {
-                    $this->output();
+                    $this->output('', '500');
                 }
                 return $this;
             }
         } else {
-            if ( $output == NULL ) {
+            if ( $exec_resp == NULL ) {
                 if ($this->action->msg->failure == "@sandy") {
-                    $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"Sandy says there was an error, but it\'s a private affair.\"}}}";
+                    $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => "Sandy says there was an error, but it\'s a private affair.")));
                 } else {
-                    $this->slug_response = "{\"slug\":{\"msg\":{\"error\": \"A call was made, and something happened, but it was not what you humans call \'success\'.\"}}}";
+                    $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => "A call was made, and something happened, but it was not what you humans call \'success\'.")));
                 }
                 
                 if ( $response ) {
-                    $this->output();
+                    $this->output('', '500');
                 }
                 return $this;
             }
         }
         
-        
         // Success block
         if ( $this->action->log !== "false" ) {
             if ( $this->action->msg->success == "@sandy" ) {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \"" . trim(urlencode($output)) . "\"}}}";
+                $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => trim(urlencode($exec_resp)))));
             } else {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \"" . trim($this->action->msg->success) . "\"}}}";
+                $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => trim(urlencode($this->action->msg->success)))));
             }
         } else {
             if ( $this->action->msg->success == "@sandy" ) {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \" Sandy says this was a good call, but private. \"}}}";
+                $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => 'Sandy says this was a good call, but private.')));
             } else {
-                $this->slug_response = "{\"slug\":{\"msg\":{\"SLUG\": \" Successful call, but the response is set to private. \"}}}";
+                $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => 'Successful call, but the response is set to private.')));
             }
         }
         
@@ -232,17 +241,30 @@ class Slug {
             $this->output();
         }
         
-        return $this;
-        
+        return $this;   
     }
     
-    public function output( $output_str = "") {
+    public function output( $output_str = "", $status_code = '200' ) {
+        header_remove();
+        header("Cache-Control: no-cache, must-revalidate");
+	header("Expires: 0");
         header('Content-Type: application/json');
-        if ( $output == "") {
-            echo (string)$this->slug_response;
-        } else {
-            echo (string)$output_str;
+        header('Status: ' . $status_code);
+        
+        // if you are doing ajax with application-json headers
+        if (empty($_POST)) {
+            $_POST = json_decode(file_get_contents("php://input"), true) ? : [];
         }
+        
+        if ( $output == "") {
+            $output = json_encode($this->slug_response, JSON_PRETTY_PRINT);
+            echo $output;
+        } else {
+            $output = json_encode($output_str, JSON_PRETTY_PRINT);
+            echo $output;
+        }
+        
+        die();
     }
     
     ##
@@ -256,7 +278,7 @@ class Slug {
         try{
            return $this->{$namespace}->slug;
         } catch (Exception $ex) {
-            $this->slug_response = "{\"slug\":{\"msg\":{\"error\":\"Fore 0 fore! Swing but no hit!\"}}}";
+            $this->slug_response = (object)array('slug' => array('msg' => array('error' => "Fore 0 fore! Swing but no hit!")));
             return false;
         }
     }

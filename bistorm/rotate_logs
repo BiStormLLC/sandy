@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+# Description: Rotate logs
+
+source /usr/local/bin/bistorm/vars/log_loc >/dev/null
+
+if [ ! -d $LOG_LOC ]; then
+    echo "Sandy: Log location was not found."
+fi
+
+if [ ! -d "/var/www/logs" ]; then
+    echo "Sandy: Log location was not found."
+fi
+
+echo "Sandy: Stopping Web servers ..."
+
+sudo nginx -s stop
+sudo service apache2 stop
+
+echo "Sandy: Tarballing log files ..."
+
+tar -cvzf /vagrant/backup/access_$(date +%b-%d-%y-%H-%M).tar.gz /var/www/log/access &>/dev/null
+tar -cvzf /vagrant/backup/bistorm_$(date +%b-%d-%y-%H-%M).tar.gz $LOG_LOC &>/dev/null
+
+if [ -f "/var/run/nginx.pid" ]; then
+    kill -USR1 `cat /var/run/nginx.pid`
+    cd /var/www/logs/access
+    for f in ./*
+    do
+      mv ./$f ./$f.old 
+    done
+fi
+
+cd $LOG_LOC
+for f in ./*.txt
+    do
+      mv ./$f ./$f.old 
+    done
+for f in ./*.log
+    do
+      mv ./$f ./$f.old 
+    done
+
+sudo rm -rf /var/www/log/access/*.json.old
+sudo rm -rf $LOG_LOC/*.txt.old
+sudo rm -rf $LOG_LOC/*.log.old

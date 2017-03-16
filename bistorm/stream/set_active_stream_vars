@@ -27,10 +27,6 @@ for d in "${apps[@]}"; do
 
     channels=($(ls -d */))
 
-    if [ -z $channels[0] ]; then
-        sudo rm /vagrant/bistorm/vars/
-    fi
-
     for c in "${channels[@]}"; do
         # Remove the trailing '/' before exporting
         if [ "${channels[-1]}" == "$c" ]; then

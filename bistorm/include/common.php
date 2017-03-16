@@ -95,7 +95,7 @@ class Common {
         $ux_env->slug = new \stdClass();
         $ux_env->server_name = self::getSandyIp();
         foreach( $slug_required_apps as $app_name => $app_body ) {
-            $ux_env->slug->{$app_name} = new \BiStorm\SLUG\Slug('bistorm', $app_body);
+            $ux_env->slug->{$app_name} = new \BiStorm\SLUG\Slug('bistorm', $app_body, false);
         }
     }
     

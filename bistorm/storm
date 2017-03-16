@@ -7,10 +7,21 @@
 #   This is primarily so that our devs don't write 'test code' in prod files.
 #   Write your functions here first, validate them, then extend as needed
 
+env=$1
+reboot_web_servers=$2
+
+if [ -z $1 ]; then
+    env="release"
+fi
+
+if [ -z $2 ]; then
+    reboot_web_servers="true"
+fi
+
 echo -e "\n\nSandy: my storm script was initiated.  Here's what you should know:"
 
-source /vagrant/bistorm/conf/ubuntu/storm_init_ubuntu_setup $1
-source /vagrant/bistorm/vars/storm_init_vars $1
+source /vagrant/bistorm/conf/ubuntu/storm_init_ubuntu_setup $env
+source /vagrant/bistorm/vars/storm_init_vars $env
 
 echo -e "\n##\n"
 
@@ -26,25 +37,34 @@ done
 echo -e "##\n"
 
 # Initialize Web Servers and Applications
-source /vagrant/bistorm/conf/web/storm_init_web_servers $1
-source /vagrant/bistorm/conf/apps/media/storm_init_apps_media $1
+if [ "$reboot_web_servers" == "true" ];then
+    source /vagrant/bistorm/conf/web/storm_init_web_servers $env 
+fi
+
+source /vagrant/bistorm/conf/apps/media/storm_init_apps_media $env
 
 # Service resets
 ## Live storm events are like this: death, hills and dashing
-/vagrant/bistorm/ffmpeg_kill "/var/www/hls" "/var/www/dash" > /vagrant/logs/ffmpeg_kill-log.txt 
+/usr/local/bin/bistorm/stream/killswitch "/var/www/hls" "/var/www/dash" &>$LOG_LOC/killswitch-log.txt 
 ## Kill running X^nDir VOD services
 sudo killall raw_mp4_to_vod raw_aac_to_vod &>/dev/null
 
 # Ensure we have directories to transfer recordings from 
-#  working directory (/vagrant/convert)
+#  working directory (/vagrant/xndir)
 if [ -d "/var/www/vod" ]; then
-    mkdir -p "/var/www/vod/video/live" "/var/www/vod/audio/live"
+    sudo mkdir -p "/var/www/vod/video/live" "/var/www/vod/audio/live"
+fi
+
+# Ensure we have public log directories
+if [ ! -d "/var/www/log" ]; then
+    sudo mkdir -p "/var/www/log" "/var/www/log/access"
+    sudo chown "vagrant:www-data" "/var/www/log" "/var/www/log/access"
 fi
 
 # X^nDir script initializations
 echo "Sandy: I am initiating X^nDir for auto-conversion of live feeds."
-/vagrant/bistorm/convert/raw_mp4_to_vod "/vagrant/convert/video/raw" "/var/www/vod" > /vagrant/logs/service-raw_mp4_to_vod-log.txt &
-/vagrant/bistorm/convert/raw_aac_to_vod "/vagrant/convert/audio/raw" "/var/www/vod" > /vagrant/logs/service-raw_aac_to_vod-log.txt &
+#/vagrant/bistorm/xndir/raw_mp4_to_vod "/vagrant/xndir/video/raw" "/var/www/vod" > $LOG_LOC/service-raw_mp4_to_vod-log.txt &
+#/vagrant/bistorm/xndir/raw_aac_to_vod "/vagrant/xndir/audio/raw" "/var/www/vod" > $LOG_LOC/service-raw_aac_to_vod-log.txt &
 
 # Output footer message
 echo -e "\n##\n"
@@ -65,7 +85,7 @@ echo -e "  (Login with user 'vagrant' and password 'vagrant')\n"
 echo -e "--mediatomb: http://$SANDY_IP:5555 \n"
 echo -e "\n##\n"
 echo "Sandy: To ask me to use my kill switch on all streams, visit [or curl]: " 
-echo -e "Sandy: http://$SANDY_IP:9082/action/stop or \n    http://$SANDY_IP/slug/action/stop"
+echo -e "Sandy: http://$SANDY_IP/slug/iot/hdhr/action/stop"
 echo -e "\nSandy: Testing Nginx configuration: " 
 sudo nginx -t 
 

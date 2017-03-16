@@ -1,0 +1,6 @@
+p_a_codec="aac"
+p_a_rate="48000"
+p_a_channels="2"
+p_quality="2"
+p_format="m4a"
+p_fileext="m4a"

@@ -1,7 +1,0 @@
-p_a_codec="libmp3lame"
-p_a_rate="44100"
-p_a_channels="1"
-p_bitrate="96000"
-p_format="mp3"
-p_fileext="mp3"
-p_jointstereo="1"

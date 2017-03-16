@@ -62,7 +62,7 @@
     
     $storm->vCumulus->active_streams = $storm->getLiveStreamUrls();
     $storm->vCumulus->open_channels = $storm->getOpenChannels();
-
+    
     if( ! empty($storm->vCumulus->open_channels['hls']) ) {
         $active_conversion = $storm->vCumulus->open_channels['hls'][0];
         if( $storm->vCumulus->appId == 'c' && strpos($active_conversion, "c/") !== FALSE ) {
@@ -72,9 +72,6 @@
             }
         }  
     }
-    
-    // Get an array of active streams
-    //if( $storm->isSandyStreaming() );
 
 ?>
 
@@ -222,14 +219,14 @@
                         jQuery("input[name=Start]").attr('disabled',true);
                         jQuery("input[name=Stop]").removeAttr('disabled');
                     }
-                )
+                );
                 
                 jQuery("input[name=Stop]").on('click', 
                     function() {
                         jQuery("input[name=Stop]").attr('disabled',true);
                         jQuery("input[name=Start]").removeAttr('disabled');
                     }
-                )
+                );
                 
                 if(console) {
                     console.log(vcum);
@@ -304,10 +301,10 @@
                     <?php
                         if( ! empty( $storm->vCumulus->active_streams) ) {
                            foreach( $storm->vCumulus->active_streams as $stream_url ) {
-                                print "<li>Open <a href='" . $stream_url . "'>" . $stream_url . "</a> for device casting.</li>";
+                                print "<li>Open <a target=\"_blank\" href='" . $stream_url . "'>" . $stream_url . "</a> for device casting.</li>";
                            }
                         } else {
-                           print "<li>Open <a href='" . $storm->vCumulus->iptvUrl . "'>" . $storm->vCumulus->iptvUrl . "</a> for device casting.</li>";
+                           print "<li>Open <a target=\"_blank\" href='" . $storm->vCumulus->iptvUrl . "'>" . $storm->vCumulus->iptvUrl . "</a> for device casting.</li>";
                         }
                     ?>
                 </ul>
@@ -320,8 +317,11 @@
                     <ul class="">
                         <li>
                             <span>Record to X^nDir</span><br>
-                            <input class="vcum-btn rec start" type="button" value="Rec" args="<?php print $storm->vCumulus->appId . ',' . $storm->vCumulus->channel . ',' . 'all' . ',' . 'start' ?>" slug="SLUG_VCUMUX_STREAM__record" name="Start" />
-                            <input class="vcum-btn rec stop" type="button" value="Stop" args="<?php print $storm->vCumulus->appId . ',' . $storm->vCumulus->channel . ',' . 'all' . ',' . 'stop' ?>" slug="SLUG_VCUMUX_STREAM__record" name="Stop" disabled />
+                            <input class="vcum-btn rec start" type="button" value="Rec" args="<?php print 'start' . ',' . $storm->vCumulus->appId . ',' . $storm->vCumulus->channel?>" slug="SLUG_VCUMUX_STREAM__record" name="Start" />
+                            <input class="vcum-btn rec stop" type="button" value="Stop" args="<?php print 'stop' . ',' . $storm->vCumulus->appId . ',' . $storm->vCumulus->channel?>" slug="SLUG_VCUMUX_STREAM__record" name="Stop"  disabled />
+                            <select class="vcum-sel" name="Profile">
+                                                                                
+                            </select>
                         </li>
                         <li>
                             <span>Change to Channel...</span><br>

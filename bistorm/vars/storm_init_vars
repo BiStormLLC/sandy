@@ -10,10 +10,12 @@ else
     env="$1"
 fi
 
+export_head='#!/bin/bash'
+
 # Export Server IP address to sandy_ip var file
 export_content="SANDYIP="
 export_ip=$(ifconfig eth1 | awk '/inet addr/{print substr($2,6)}')
-export_footer='export SANDY_IP=$SANDYIP; echo "Sandy: ENV ##VCUM_ENV## is set. Thanks for letting me in!  My guest IP is @$SANDY_IP"'
+export_footer='export SANDY_IP=$SANDYIP; echo "Sandy: ENV ##SANDY_IP## is set. Thanks for letting me in!  My guest IP is @$SANDY_IP"'
 echo -e "$export_head \n$export_content\"$export_ip\"\n$export_footer;" > /vagrant/bistorm/vars/sandy_ip
 
 # Get the HDHomeRunPrime IP address and set it in the prime_ip var file
@@ -24,8 +26,17 @@ if [ ! -z "$export_ip" ] && [ ! "$export_ip" == "" ]; then
     echo -e "$export_head \n$export_content\"$export_ip\"\n$export_footer;" > /vagrant/bistorm/vars/prime_ip
 fi
 
+# Set the log file directory
+if [ ! -d "/var/www/logs" ]; then
+    sudo mkdir -p "/var/www/logs" "/var/www/logs/access"
+    sudo chown vagrant:www-data /var/www/logs /var/www/logs/access
+fi
+export_content="LOGLOC=\"/usr/local/bin/bistorm/logs\""
+export_footer='export LOG_LOC=$LOGLOC; echo "Sandy: ENV ##LOG_LOC## is set. Your logs are rotated whenever storm is run: @$LOG_LOC"'
+echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars/log_loc
+
+
 # Create environment variable for vCumulus virtual directory path
-export_head='#!/bin/bash'
 export_content="VCUMEN=\"$env\""
-export_footer='export VCUM_ENV=$VCUMEN; echo "Sandy: ENV ##$VCUMEN## is set. Path to the working directory is /var/www/public/$VCUM_ENV. My vCumulus UX ENV is set to @$VCUM_ENV"'
+export_footer='export VCUM_ENV=$VCUMEN; echo "Sandy: ENV ##VCUMEN## is set. Path to the working directory is /var/www/public/$VCUM_ENV. My vCumulus UX ENV is set to @$VCUM_ENV"'
 echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars/vcum_env

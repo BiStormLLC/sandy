@@ -1,0 +1,3 @@
+#!/bin/bash
+LOGLOC="/usr/local/bin/bistorm/logs"
+export LOG_LOC=$LOGLOC; echo "Sandy: ENV ##LOG_LOC## is set. Your logs are rotated whenever storm is run: @$LOG_LOC";

@@ -21,11 +21,11 @@ if [ -d "$HOME/bin" ] ; then
     PATH="$HOME/bin:$PATH"
 fi
 
-for f in /vagrant/bistorm/vars/*; do
+for f in /usr/local/bin/bistorm/vars/*; do
     source $f
 done
 
-/vagrant/bistorm/storm release && sudo nginx -s reload
+sudo nginx -s reload
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"

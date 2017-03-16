@@ -1,4 +1,5 @@
 RewriteEngine on
 RewriteCond %{QUERY_STRING} ^(.*)$
-RewriteRule ^([^\.]+)$ /index.php [NC,L]
-RewriteRule ^.*\.(json)$ - [F,L,NC]
+RewriteRule ^([^\.]+).json$ /index.php [QSA,L]
+RewriteRule ^([^\.]+)$ /index.php [QSA,L]
+RewriteRule ^(slug.json)$ - [F,L,NC]

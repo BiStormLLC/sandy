@@ -40,8 +40,8 @@ else
 fi
 
 # Copy conf files to nginx and apache2 folders prior to starting nginx (called from user .profile)
-sed -e "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/bistorm/conf/web/nginx/nginx.conf" > ~/nginx.tmp.conf &&
-sudo cp ~/nginx.tmp.conf /usr/local/nginx/conf/nginx.conf && rm ~/nginx.tmp.conf
+sed -e "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/bistorm/conf/web/nginx/nginx.conf" > /vagrant/bistorm/nginx.tmp.conf &&
+sudo cp /vagrant/bistorm/nginx.tmp.conf /usr/local/nginx/conf/nginx.conf && rm /vagrant/bistorm/nginx.tmp.conf
 
 ## Ensure that we have a listening Apache :9080 prior to testing nginx reload
 sudo service apache2 restart &>/dev/null && sudo fuser -k 80/tcp &>/dev/null && echo "Sandy: Apache2 configured and booted successfully."

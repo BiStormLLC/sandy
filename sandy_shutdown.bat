@@ -4,7 +4,7 @@ IF EXIST "%1" (
     cd %1
     vagrant halt -f
 ) ELSE (
-    cd /d %~dp0
+    cd %~dp0
     vagrant halt -f
 )
 

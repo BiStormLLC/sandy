@@ -2,9 +2,9 @@
 .vagrant
 *.box
 metadata.json
-/logs/*
+/bistorm/logs
 /vCumulus/capture-gallery
 /ProjectSandy/*
 for-your-etc-hosts-file.txt
 ay-sandy.bat
-/nbproject/private/
+/nbproject/

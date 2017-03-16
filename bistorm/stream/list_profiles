@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# Description: lists conversion profiles so that they can be populated elsewhere
+#
+
+content_type=$1
+
+if [ -z $1 ]; then
+    echo "Sandy: Please provide me with a content type [audio/video]"
+fi
+
+cd /vagrant/xndir/${content_type}
+
+echo "'"
+
+profiles=($(ls -d */))
+
+for p in "${profiles[@]}"; do
+    if [ "${profiles[-1]}" == "$p" ]; then
+        echo "${p}"
+    else 
+        echo "${p};"
+    fi
+done
+
+echo "'"

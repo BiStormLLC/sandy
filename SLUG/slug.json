@@ -44,6 +44,14 @@
                             "success": "@sandy",
                             "failure": "Script error"
                         }
+                    },
+                    {
+                        "name": "list_profiles",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "Script error"
+                        }
                     }]
                 },
                 "flags": {
@@ -63,6 +71,41 @@
                             "success": "@sandy",
                             "failure": "Script error"
                         }
+                    }]
+                }
+            },
+            "sandy": {
+                "sh_root": "/usr/local/bin/bistorm",
+                "bistorm": {
+                    "sh_root": "/usr/local/bin/bistorm",
+                    "action": [{
+                        "name": "storm",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "@sandy"
+                        }
+                    },{
+                        "name": "vcuum",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "@sandy"
+                      } 
+                    },{
+                        "name": "ffmpeg_status",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "@sandy"
+                        }
+                    },{
+                        "name": "/rotate_logs",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "@sandy"
+                        } 
                     }]
                 }
             }

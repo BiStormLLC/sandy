@@ -119,7 +119,6 @@ Vagrant.configure("2") do |config|
     
     # OR >>> TRY THESE?
     #config.vm.synced_folder "./bistorm", "/usr/local/bin/bistorm", owner: "vagrant", group: "root", :mount_options => ["dmode=775", "fmode=664"] 
-    #config.vm.synced_folder "./cache", "/var/cache", owner: "vagrant", group: "root", :mount_options => ["dmode=775", "fmode=664"] 
     #config.vm.synced_folder "./SLUG", "/var/www/slug", owner: "vagrant", group: "root", :mount_options => ["dmode=775", "fmode=555"] 
     #config.vm.synced_folder "./vCumulus", "/var/www/public", owner: "vagrant", group: "www-data", :mount_options => ["dmode=754", "fmode=666"] 
     #config.vm.synced_folder "./media", "/var/www/vod", owner: "vagrant", group: "www-data", :mount_options => ["dmode=777", "fmode=666"] 

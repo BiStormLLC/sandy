@@ -12,7 +12,7 @@ template_dir="/vagrant/bistorm/template"
 vcumulus_dir="/var/www/public/ux/alpha"
 
 # Input stream directory
-stream_dir_v="/vagrant/convert/video"
+stream_dir_v="/vagrant/xndir/video"
 
 inotifywait -e create "$stream_dir_v" |
   while read filename; do
@@ -33,7 +33,7 @@ inotifywait -e create "$stream_dir_v" |
             -s 1280x720 -vcodec libx264 -crf 18 -preset ultrafast -maxrate 1500k -bufsize 2000k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/wifi" \
             -s 960x540 -vcodec libx264 -crf 20 -preset ultrafast -maxrate 800k -bufsize 1500k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/mobile" \
             -s 720x480 -vcodec libx264 -crf 25 -preset ultrafast -maxrate 400k -bufsize 800k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/lo" \
-            -s 320x240 -vcodec libx264 -crf 50 -preset ultrafast -maxrate 200k -bufsize 400k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/audio" > /vagrant/logs/ffmpeg-log.txt
+            -s 320x240 -vcodec libx264 -crf 50 -preset ultrafast -maxrate 200k -bufsize 400k -g 60 -profile:v baseline -acodec aac -strict -2 -f flv "rtmp://localhost/d/audio" > /usr/local/bin/bistorm/ffmpeg-log.txt
             break
         fi
     exit 0

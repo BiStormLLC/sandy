@@ -9,6 +9,7 @@
 
 env1="$1"
 env2="$2"
+force="$3"
 
 echo -e ".\n..\n...\n...."
 echo "Sandy: This is my vCumulus environment publisher tool."
@@ -28,13 +29,14 @@ if [ -z $1 ] || [ "$1" == "help" ]; then
 fi
 
 if [ ! -z $env1 ] && [ ! -z $env2 ]; then
-
-    read -n1 -r -p "Sandy: !!WARNING!! This will wipe away all of '$2' and replace it with \
+    if [ -z $force ] || [ "$force" == "n"]; then
+        read -n1 -r -p "Sandy: !!WARNING!! This will wipe away all of '$2' and replace it with \
 the contents of '$1'.  Press (y) to continue or any other key to exit." key
 
-    if [[ ! "$key" = 'y' ]]; then
-        echo -e "\n..\n..\nSandy: Oh thank goodness! There was some cool stuff in there ...\n.\n..\n...\n"
-        exit 0
+        if [[ ! "$key" = 'y' ]]; then
+            echo -e "\n..\n..\nSandy: Oh thank goodness! There was some cool stuff in there ...\n.\n..\n...\n"
+            exit 0
+        fi
     fi
 
     echo -e "\n\nSandy: I am compressing a backup of /var/www/public/$2/react-app to /var/www/public/$2 ... "

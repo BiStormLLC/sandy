@@ -265,7 +265,8 @@ Please note that in these examples, localhost/127.0.0.1/0.0.0.0 is more likely
 
 ## Change history
 
-# WHAT TO EXPECT NEXT
+# WHAT TO EXPECT NEXT (0.5 - 0.7)
+-  DNS/VPN installation scripts for Sandy Server 0.4.4
 -  MongoDB integration for configuration of simulcasting services (Twitch, YouTube, etc.)
 -  Metadata handlers for converted media
 -  More work for clustering Sandy servers in a network and taking an instance to production
@@ -279,8 +280,8 @@ Please note that in these examples, localhost/127.0.0.1/0.0.0.0 is more likely
     -Major refactoring and fine tuning of web server configurations
     -Wrote 1.0.0 of SLUG router with JSON configuration
     -Time devoted to conceptualizing test framework
-    -Ay-Sandy batch file shortcuts for future development of Windows 10 app with Cortana later
-    -Recording of live content
+    -Alpha: Ay-Sandy batch file shortcuts for future development of Windows 10 app with Cortana later
+    -Beta: Recording of live content
     -Nginx proxied apps now have virtual directory support: (use /slug instead of :9082/ and /iptv instead of :9081/hls)
 
 ### 0.4.5
@@ -290,7 +291,7 @@ Please note that in these examples, localhost/127.0.0.1/0.0.0.0 is more likely
     -BiStorm SLUG is currently at 0.1.1.  Will be refactoring for namespaces, to prep for other #IOT communication projects
     -Broke vCumulus out into environments.  By default, server runs through /vagrant/vCumulus/release.  To host a different environment, ssh into the guest and run "storm [dev|stg-int|stg-ext]".
     -To elevate your code to a different environment, ssh into the guest and run "vcum [From Environment] [To Environment].  This is mirrored-elevation compatible, meaning you can copy "release" into "dev" or "dev" into "release"
-    -Birth of X^nDir, our media format standardizer. This includes profile conversion updates to allow drag-and-drop conversions from the vagrant/convert folders.
+    -Birth of X^nDir, our media format standardizer. This includes profile conversion updates to allow drag-and-drop conversions from the vagrant/xndir folders.
     -Profiled transcoding of HDHomeRun channels, to allow you to tune as you'd like.
     -Nginx config updates to reverse-proxy incoming port 80 requests to Apache for vCumulus
     -Much better HDHomeRun conversion speed and quality
