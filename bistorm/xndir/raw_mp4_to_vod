@@ -145,7 +145,11 @@ do
     ## Concatenated string of all of our profile settings
     ffmpeg_string=" -vcodec $p_v_codec -tune $p_tune -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -crf $p_crf$p_v_profile$p_preset-maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"      
     ffmpeg_queue > /dev/null
-    echo $ffmpeg_string > $LOG_LOC/ffmpeg_out_string.txt
+    if [ "$p_custom_string" == "" ]; then
+        echo $ffmpeg_string > $LOG_LOC/ffmpeg_out_string.txt
+    else
+        echo $p_custom_string > $LOG_LOC/ffmpeg_out_string.txt
+    fi
 
     echo "Sandy: I am encoding the raw $latest_stream_base to $outputfile ... "
     
@@ -158,7 +162,7 @@ do
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
             cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
         else
-            /usr/local/bin/ffmpeg -y -i ${filename} ${p_custom_string} ${profile_temp_loc} &> "${LOG_LOC}/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
+            /usr/local/bin/ffmpeg -y -i ${filename} ${p_custom_string} ${profile_temp_loc} &> "$LOG_LOC/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
             # Copy completed file to media directory
             mv "${profile_temp_loc}" "${outputfile}" && 
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
@@ -166,18 +170,18 @@ do
         fi
     else
         # Create location to store audio
-        mkdir -p "$media_dir/audio/live/$foldername"
+        mkdir -p "$media_dir/audio/live/$foldername/channel_${mp4fn}"
         $save_loc_a="$media_dir/audio/live/$foldername/channel_${mp4fn}"
         # Copy demuxed audio into the audio folder
         if [ "$p_custom_string" == "" ]; then
-            /usr/local/bin/ffmpeg -y -i $filename -vn -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$save_loc_a/$output_prefix.aac" 
-            /usr/local/bin/ffmpeg -y -i $filename $ffmpeg_string "${profile_temp_loc}" > /tmp/ffmpeg && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt"  &&
+            /usr/local/bin/ffmpeg -y -i $filename -vn -acodec $p_a_codec -b:a $p_a_bitrate "$save_loc_a/${output_prefix}.aac" 
+            /usr/local/bin/ffmpeg -y -i $filename $ffmpeg_string ${profile_temp_loc} &> "$LOG_LOC/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt"  &&
             mv "${profile_temp_loc}" "${outputfile}" && 
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
             cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
         else
-            /usr/local/bin/ffmpeg -y -i $filename -vn -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$save_loc_a/$output_prefix.aac" 
-            /usr/local/bin/ffmpeg -y -i $filename -an $p_custom_string "${profile_temp_loc}" > /tmp/ffmpeg && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
+            /usr/local/bin/ffmpeg -y -i $filename -vn -acodec $p_a_codec -b:a $p_a_bitrate "$save_loc_a/${output_prefix}.aac" 
+            /usr/local/bin/ffmpeg -y -i $filename -an ${p_custom_string} ${profile_temp_loc} &> "$LOG_LOC/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
             mv "${profile_temp_loc}" "${outputfile}" && 
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
             cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
