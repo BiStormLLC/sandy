@@ -30,20 +30,17 @@ fi
 mp4fn=$(basename "$stream")
 mp4fn=$(echo $mp4fn | cut -f 1 -d '.')
 
-ffmpeg_queue > /dev/null
-
 # Folder organizer
 foldername=$(date +%Y/%m/%d)
+timestamp=$(date +'%s')
 mkdir -p "$copyto_v/$foldername"
 mkdir -p "$copyto_a/$foldername"
 
 echo "Sandy: I am encapsulating the current stream $stream to $copyto_v/$mp4fn.mp4 and $copyto_v/$mp4fn.aac ... "
 
 # Create demuxed .mp4, subs and audio, dump to $copyto folder 
-ffmpeg -i $stream -vcodec copy -acodec copy "$copyto_v/$foldername/$mp4fn.mp4" > /tmp/ffmpeg
-ffmpeg -i $stream -map 0:s:0 "$copyto_v/$foldername/$mp4fn.srt" > /tmp/ffmpeg
-ffmpeg -i $stream -vn -acodec copy "$copyto_a/$foldername/$mp4fn.aac" > /tmp/ffmpeg 
+ffmpeg -i $stream -vcodec copy -acodec copy "${copyto_v}/${foldername}/${mp4fn}_${timestamp}.mp4" > /dev/null
+ffmpeg -i $stream -map 0:s:0 "${copyto_v}/${foldername}/${mp4fn}_${timestamp}.srt" > /dev/null
+ffmpeg -i $stream -vn -acodec copy "${copyto_a}/${foldername}/${mp4fn}_${timestamp}.aac" > /dev/null
 
-# Clean the conversion root directory of .flv files dumped by Nginx-RTMP module
-find /vagrant/xndir/video/ -maxdepth 1 -type f -name "*.flv" -delete
 

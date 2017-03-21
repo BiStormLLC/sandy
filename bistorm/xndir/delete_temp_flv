@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# Description: Delete the 'r' app recorded file
+#
+channel="$1"
+media_dir="$2"
+
+if [ -z $channel ]; 
+    then
+      echo "Sandy: Please pass me the channel name of the temp file to be deleted."
+      echo "exited with error"
+      exit 1
+fi
+
+cd /vagrant/xndir/video
+if [ -f "$channel.flv" ]; then
+    sudo rm $channel.flv
+    echo "Sandy: $channel.flv temp recording was removed."
+else
+    echo "Sandy: There wasn't a temp file for this channel, so you're good to go!"
+fi
+
+

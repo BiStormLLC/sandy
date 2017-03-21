@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# Description: Set the recording profile as an environment variable
+#
+profile="$1"
+
+## Verify that we have a working directory as requested
+if [ ! -d "/vagrant/xndir/video/$profile" ]; 
+    then
+      echo "Sandy: Please pass me the X^nDir location where transcoding profiles are stored."
+      echo "exited with error"
+      exit 1
+fi
+
+# Set the X^nDir Recording Profile
+export_head='#!/bin/bash'
+export_content="RECPROFILE=\"$profile\""
+export_footer='export REC_PROFILE=$RECPROFILE; echo "Sandy: ENV ##REC_PROFILE## is set. Path to the working directory is /vagrant/xndir/video/$REC_PROFILE. My vCumulus UX ENV is set to: @$REC_PROFILE"'
+echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars/rec_profile
+
+source /vagrant/bistorm/vars/rec_profile
+
+# Reset the active X^nDir listeners to the newly set profiles
+/usr/local/bin/bistorm/xndir/raw_mp4_to_vod &>/dev/null &
+/usr/local/bin/bistorm/xndir/raw_aac_to_vod &>/dev/null &
+
+echo "Sandy: REC_PROFILE var set to $REC_PROFILE""

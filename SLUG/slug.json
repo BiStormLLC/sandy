@@ -26,6 +26,19 @@
             },
             "vcumux": {
                 "sh_root": "/usr/local/bin/bistorm",
+                "log": {
+                    "sh_root": "/usr/local/bin/bistorm",
+                    "action": [
+                        {
+                            "name": "log_view",
+                            "log": "true",
+                            "msg": {
+                                "success": "@sandy",
+                                "failure": "Script error"
+                            }
+                        }
+                    ]
+                },
                 "stream": {
                     "sh_root": "/usr/local/bin/bistorm/stream",
                     "action": [
@@ -52,6 +65,22 @@
                             "success": "@sandy",
                             "failure": "Script error"
                         }
+                    },
+                    {
+                        "name": "set_rec_profile_var",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "Script error"
+                        }
+                    },
+                    {
+                        "name": "drop_client",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "Script error"
+                        }
                     }]
                 },
                 "flags": {
@@ -63,19 +92,30 @@
                             "success": "@sandy",
                             "failure": "Script error"
                         }
-                    },
-                    {
-                        "name": "set_flag",
-                        "log": "false",
-                        "msg": {
-                            "success": "@sandy",
-                            "failure": "Script error"
-                        }
                     }]
                 }
             },
             "sandy": {
                 "sh_root": "/usr/local/bin/bistorm",
+                "xndir": {
+                    "sh_root": "/usr/local/bin/bistorm/xndir",
+                    "action": [{
+                        "name": "delete_temp_flv",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "Script error"
+                        }
+                    },
+                    {
+                        "name": "raw_mp4_to_vod",
+                        "log": "true",
+                        "msg": {
+                            "success": "@sandy",
+                            "failure": "Script error"
+                        }
+                    }]
+                },
                 "bistorm": {
                     "sh_root": "/usr/local/bin/bistorm",
                     "action": [{
@@ -100,7 +140,7 @@
                             "failure": "@sandy"
                         }
                     },{
-                        "name": "/rotate_logs",
+                        "name": "log_rotate",
                         "log": "true",
                         "msg": {
                             "success": "@sandy",

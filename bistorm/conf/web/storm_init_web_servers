@@ -14,6 +14,7 @@ fi
 ## Apache
 sed -e "s/%%SANDY_IP%%/$SANDY_IP/g" "/vagrant/bistorm/conf/web/apache/sandy.local.conf" > ~/sandy.local.tmp.conf &&
 sudo cp ~/sandy.local.tmp.conf /etc/apache2/sites-available/sandy.local.conf && rm ~/sandy.local.tmp.conf
+sudo cp /vagrant/bistorm/conf/web/apache/apache2.conf /etc/apache2/apache2.conf 
 sudo cp /vagrant/bistorm/conf/web/apache/ports.conf /etc/apache2/ports.conf 
 sudo cp /vagrant/bistorm/conf/web/apache/bistorm-slug.conf /etc/apache2/sites-available/
 sudo cp /vagrant/bistorm/conf/web/apache/sandy-staging.bistorm.us.conf /etc/apache2/sites-available/

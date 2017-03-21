@@ -25,7 +25,7 @@ for f in /usr/local/bin/bistorm/vars/*; do
     source $f
 done
 
-sudo nginx -s reload
+storm release &>/dev/null &
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"

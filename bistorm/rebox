@@ -37,13 +37,12 @@ sudo rm -rf ./*.* >/dev/null
 
 # Files that didn't finish converting
 cd /vagrant/xndir/audio
-sudo rm -rf ./*.* >/dev/null
-sudo rm -rf ./raw/* > /dev/null
+find . -type f ! -name '.gitignore' ! -name '.profile' -delete
 cd /vagrant/xndir/video
-sudo rm -rf ./*.* >/dev/null
-sudo rm -rf ./raw/* > /dev/null
+find . -type f ! -name '.gitignore' ! -name '.profile' -delete
 
 # Logs
+/usr/local/bin/bistorm/log_rotate
 cd $LOG_LOC
 sudo mv ./*.* ./*.*.0 >/dev/null
 sudo rm -rf ./*.*.0 >/dev/null
@@ -75,19 +74,15 @@ sudo rm -r ./* >/dev/null
 # Stored Media Directories (No Mercy)
 if [ -d "/var/www/vod/audio" ]; then
     cd /var/www/vod/audio
-    sudo rm -rf *.* > /dev/null
+    sudo rm -rf ./* > /dev/null
 fi
 if [ -d "/var/www/vod/video" ]; then
     cd /var/www/vod/video
-    sudo rm -rf *.* > /dev/null
-fi
-if [ -d "/var/www/vod/live" ]; then
-    cd /var/www/vod/live
-    sudo rm -rf *.* > /dev/null
+    sudo rm -rf ./* > /dev/null
 fi
 if [ -d "/var/www/vod/cam" ]; then
     cd /var/www/vod/cam
-    sudo rm -rf *.* > /dev/null
+    sudo rm -rf ./* > /dev/null
 fi
 
 # Vars
@@ -104,9 +99,9 @@ find . -type f ! -name '*.zip' ! -name '*.gitignore' -delete
 cd /var/www/public/stg-ext
 find . -type f ! -name '*.zip' ! -name '*.gitignore' -delete
 
-echo "Sandy: Please wait ... I am zeroing out the drive."
-sudo dd if=/dev/zero of=/EMPTY bs=1M >/dev/null
-sudo rm -f /EMPTY
+#echo "Sandy: Please wait ... I am zeroing out the drive."
+#sudo dd if=/dev/zero of=/EMPTY bs=1M >/dev/null
+#sudo rm -f /EMPTY
 
 # Clear histories
 cat /dev/null > ~/.bash_history && history -c

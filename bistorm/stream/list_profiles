@@ -11,16 +11,18 @@ fi
 
 cd /vagrant/xndir/${content_type}
 
-echo "'"
-
 profiles=($(ls -d */))
 
 for p in "${profiles[@]}"; do
-    if [ "${profiles[-1]}" == "$p" ]; then
-        echo "${p}"
+    p=${p::-1}
+    if [ "$p" == "raw" ]; then
+        continue
+    fi
+    if [ "${profiles[-1]}" == "$p/" ]; then
+        list="$list\"$p\""
     else 
-        echo "${p};"
+        list="$list\"$p\","
     fi
 done
 
-echo "'"
+echo "[$list]"

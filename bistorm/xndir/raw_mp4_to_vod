@@ -1,11 +1,13 @@
 #!/bin/bash
 #
-# Description: Takes a raw folder mp4 file and converts it to different 
+# Description: Takes new raw folder mp4 file and converts them to different 
 #  stream-ready bitrates using conversion profile folders
 #
-raw_dir_v="$1"
-media_dir="$2"
-profile_dir="$3"
+
+raw_dir_v="/vagrant/xndir/video/raw"
+media_dir="/var/www/vod"
+
+source /usr/local/bin/bistorm/vars/log_loc >/dev/null
 
 if [ ! -d $raw_dir_v ]; 
     then
@@ -21,18 +23,22 @@ if [ ! -d $media_dir ];
       exit 1
 fi
 
-if [ ! -d $media_dir ]; 
-    then
-      echo "Sandy: Please pass me a profile directory to use for conversion."
-      echo "exited with error"
-      exit 1
-fi
-
-parentdir="$(dirname $raw_dir_v)"
+# Kill previous instance if we were waiting from another recording
+sudo killall inotifywait
 
 # Wait until raw video directory receives a new file
 inotifywait -qmre close_write --format "%w%f" "$raw_dir_v" | while read filename; 
 do
+    # Path management
+    source /usr/local/bin/bistorm/vars/rec_profile >/dev/null
+    if [ "$REC_PROFILE" == "raw" ]; then
+        continue
+    fi
+    parentdir="$(dirname $raw_dir_v)"
+    profile=$REC_PROFILE
+    profiledir="${parentdir}/${profile}"
+    echo "raw_mp4_to_vod :: Current Profile Directory: $profiledir" > $LOG_LOC/profile-dir.txt
+
     latest_stream_base=$(basename $filename)
 
     # Ensure that we are converting an .mp4 file
@@ -44,8 +50,10 @@ do
     fi
 
     # Generate filename before .mp4
-    mp4fn=$(echo $latest_stream_base | cut -f 1 -d '.')
-    stringcreated=$(echo $mp4fn | cut -f 2 -d '_')
+    mp4fn_time=$(echo $latest_stream_base | cut -f 1 -d '.')
+    stringcreated=$(echo $mp4fn_time | cut -f 2 -d '_')
+    mp4fn=$(echo $latest_stream_base | cut -f 1 -d '_')
+    echo -e "raw_mp4_to_vod :: Pre-conversion values: mp4fn_time: $mp4fn_time, stringcreated: $stringcreated, mp4fn: $mp4fn" > $LOG_LOC/raw_mp4_to_vod_preconversion.txt
 
     # Ensure that the file contains a valid timestamp
     val_date=$(date -d @$stringcreated)
@@ -59,136 +67,121 @@ do
     # File folder organizer
     foldername=$(date --date @$stringcreated +"%Y/%m/%d")
 
-    # Loop through each profile directory and use as a working directory
-    #  Then output to the appropriate media vod folder
-    for d in $parentdir/*; do
+    # Leave if the file added contains the profile name, because those are
+    #  considered completed jobs
+    if [ "$latest_stream_base" == *"$profile"* ]; then
+        continue
+    fi   
 
-        # Profile directory name
-        profile=$(basename $d)
+    ## DEFAULT PROFILE
+    p_custom_string=""
+    p_demux="0"
+    p_v_codec="copy"
+    p_a_codec="copy"
+    p_size_width="1280"
+    p_size_height="720"
+    p_filter=""
+    p_crf="18"
+    p_preset="ultrafast"
+    p_maxrate="1000k"
+    p_bufsize="1500k"
+    p_a_bitrate="192k"
+    p_g="60"
+    p_tune="fastdecode"
+    p_format="mp4"
+    p_fileext="mp4"
+    # NOT REQUIRED : set p_thumb_gen to "0" in .profile to ignore thumbnail generation
+    p_thumb_gen="1"
+    p_thumb_height="250"
+    p_thumb_rows="1"
+    p_thumb_cols="30"
 
-        # Leave if we're not in a dir or if we're in the raw directory
-        if [ ! -d "$d" ] || [ "$profile" == "raw" ]; then
-            continue
-        fi
+    # Import ffmpeg profile variables for this folder
+    if [ -f "$profiledir/.profile" ]; then
+        source "$profiledir/.profile"
+        export $(cut -d= -f1 "$profiledir/.profile")
+    else
+        echo "Sandy: No .profile file was found for $profile, so I'm using my defaults."
+    fi
 
-        # Also, leave if the file added contains the profile name, because those are
-        #  considered completed jobs
-        if [ "$latest_stream_base" == *"$profile"* ]; then
-            continue
-        fi   
-        
-        ## DEFAULT PROFILE
-        p_custom_string=""
-        p_demux="0"
-        p_v_codec="copy"
-        p_a_codec="copy"
-        p_size_width="1280"
-        p_size_height="720"
-        p_filter=""
-        p_crf="18"
-        p_preset="ultrafast"
-        p_maxrate="1000k"
-        p_bufsize="1500k"
-        p_a_bitrate="192k"
-        p_g="60"
-        p_tune="fastdecode"
-        p_format="mp4"
-        p_fileext="mp4"
-        # NOT REQUIRED : set p_thumb_gen to "0" in .profile to ignore thumbnail generation
-        p_thumb_gen="1"
-        p_thumb_height="250"
-        p_thumb_rows="1"
-        p_thumb_cols="30"
+    # Including empty filter will break ffmpeg conversion,
+    #  So, we include a rescaler to the entire argument or none at all
+    if [ -z "$p_filter+x" ] || [ "$p_filter" == "" ]; then
+        # Implements $p_size_width and $p_size_height to set dimension format
+         p_filter="scale=iw*min($p_size_width/iw\,$p_size_height/ih):ih*min($p_size_width/iw\,$p_size_height/ih),pad=$p_size_width:$p_size_height:($p_size_width-iw*min($p_size_width/iw\,$p_size_height/ih))/2:($p_size_height-ih*min($p_size_width/iw\,$p_size_height/ih))/2"
+    fi
 
-        # Import ffmpeg profile variables for this folder
-        if [ -f "$d/.profile" ]; then
-            source "$d/.profile"
-            export $(cut -d= -f1 "$d/.profile")
+    ## Profile not always required, so we truncate if not used
+    if [ -z "$p_v_profile+x" ] || [ "$p_v_profile" == "" ]; then
+        p_v_profile=""
+    else
+        p_v_profile=" -profile:v $p_v_profile "
+    fi
+
+    ## Preset not always required, so we truncate if not used
+    if [ -z "$p_preset+x" ] || [ "$p_preset" == "" ]; then
+        p_preset=""
+    else
+        p_preset=" -preset $p_preset "
+    fi
+
+    timestamp=$(date +%H-%M-%S)
+
+    save_loc="${media_dir}/video/live/${foldername}/channel_${mp4fn}"
+    output_prefix="${mp4fn}_${profile}_${timestamp}"
+    outputfile="${save_loc}/${output_prefix}.${p_fileext}"
+    profile_temp_loc="${profiledir}/${mp4fn}-${profile}.${p_fileext}"
+
+    echo -e "save_loc: $save_loc, output_prefix: $output_prefix, outputfile: $outputfile, profile_temp_loc: $profile_temp_loc" >> $LOG_LOC/raw_mp4_to_vod_preconversion.txt
+
+    sudo mkdir -p "${save_loc}" "${save_loc}/meta" "${save_loc}/thumbs"
+
+    # Copy in metadata 
+    /usr/local/bin/ffmpeg -y -i $filename -f ffmetadata "${save_loc}/meta/${output_prefix}-input-metadata.txt" &
+
+    # Copy in info
+    /usr/local/bin/ffprobe -show_format -show_streams $filename > "${save_loc}/meta/${output_prefix}-input-info.txt"
+
+    ## Concatenated string of all of our profile settings
+    ffmpeg_string=" -vcodec $p_v_codec -tune $p_tune -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -crf $p_crf$p_v_profile$p_preset-maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"      
+    ffmpeg_queue > /dev/null
+    echo $ffmpeg_string > $LOG_LOC/ffmpeg_out_string.txt
+
+    echo "Sandy: I am encoding the raw $latest_stream_base to $outputfile ... "
+    
+    if [ "$p_demux" == "0" ]; then
+        # Convert file in working/profile directory
+        if [ "$p_custom_string" == "" ]; then 
+            /usr/local/bin/ffmpeg -y -i ${filename} ${ffmpeg_string} ${profile_temp_loc} > "$LOG_LOC/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
+            # Copy completed file to media directory
+            mv "${profile_temp_loc}" "${outputfile}" &&
+            /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
+            cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
         else
-            echo "Sandy: No .profile file was found for $d, so I'm using my defaults."
+            /usr/local/bin/ffmpeg -y -i ${filename} ${p_custom_string} ${profile_temp_loc} > ${LOG_LOC}/raw_mp4_to_vod_ffmpeg-log.txt && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
+            # Copy completed file to media directory
+            mv "${profile_temp_loc}" "${outputfile}" && 
+            /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
+            cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
         fi
-
-        # Including empty filter will break ffmpeg conversion,
-        #  So, we include a rescaler to the entire argument or none at all
-        if [ -z "$p_filter+x" ] || [ "$p_filter" == "" ]; then
-            # Implements $p_size_width and $p_size_height to set dimension format
-             p_filter="scale=iw*min($p_size_width/iw\,$p_size_height/ih):ih*min($p_size_width/iw\,$p_size_height/ih), pad=$p_size_width:$p_size_height:($p_size_width-iw*min($p_size_width/iw\,$p_size_height/ih))/2:($p_size_height-ih*min($p_size_width/iw\,$p_size_height/ih))/2"
-        fi
-
-        ## Profile not always required, so we truncate if not used
-        if [ -z "$p_v_profile+x" ] || [ "$p_v_profile" == "" ]; then
-            p_v_profile=""
+    else
+        # Create location to store audio
+        mkdir -p "$media_dir/audio/live/$foldername"
+        $save_loc_a="$media_dir/audio/live/$foldername/channel_${mp4fn}"
+        # Copy demuxed audio into the audio folder
+        if [ "$p_custom_string" == "" ]; then
+            /usr/local/bin/ffmpeg -y -i $filename -vn -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$save_loc_a/$output_prefix.aac" 
+            /usr/local/bin/ffmpeg -y -i $filename $ffmpeg_string "${profile_temp_loc}" > /tmp/ffmpeg && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt"  &&
+            mv "${profile_temp_loc}" "${outputfile}" && 
+            /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
+            cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
         else
-            p_v_profile=" -profile:v $p_v_profile "
+            /usr/local/bin/ffmpeg -y -i $filename -vn -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$save_loc_a/$output_prefix.aac" 
+            /usr/local/bin/ffmpeg -y -i $filename -an $p_custom_string "${profile_temp_loc}" > /tmp/ffmpeg && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
+            mv "${profile_temp_loc}" "${outputfile}" && 
+            /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
+            cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
         fi
+    fi
 
-        ## Preset not always required, so we truncate if not used
-        if [ -z "$p_preset+x" ] || [ "$p_preset" == "" ]; then
-            p_preset=""
-        else
-            p_preset=" -preset $p_preset "
-        fi
-
-        save_loc="$media_dir/video/live/$profile/$foldername/$mp4fn"
-        outputfile="$save_loc/index.$p_fileext"
-
-        sudo mkdir -p "$save_loc"
-        
-        # Copy in metadata 
-        /usr/local/bin/ffmpeg -y -i $filename -f ffmetadata "$save_loc/$mp4fn-input-metadata.txt"
-
-        # Copy in info
-        /usr/local/bin/ffprobe -show_format -show_streams $filename > "$save_loc/$mp4fn-input-info.txt"
-        
-        ## Concatenated string of all of our profile settings
-        ffmpeg_string=" -vcodec $p_v_codec -tune $p_tune -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -crf $p_crf$p_v_profile$p_preset-maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"      
-
-        ffmpeg_queue > /dev/null
-
-        echo "Sandy: I am encoding the raw $latest_stream_base to $outputfile ... "
-
-        if [ "$p_demux" == "0" ]; then
-            # Convert file in working/profile directory
-            if [ "$p_custom_string" == "" ]; then 
-                /usr/local/bin/ffmpeg -y -i $filename $ffmpeg_string "$d/$mp4fn-$profile.$p_fileext" > /tmp/ffmpeg 2>$LOG_LOC/ffmpeg_audio_$uid-log.txt &&  echo "$outputfile | " >> "$LOG_LOC/profile-video-$profile-conversions-log.txt" &&
-                # Copy completed file to media directory
-                mv "$d/$mp4fn-$profile.$p_fileext" "$outputfile"
-            else
-                /usr/local/bin/ffmpeg -y -i $filename $p_custom_string "$d/$mp4fn-$profile.$p_fileext" > /tmp/ffmpeg 2>$LOG_LOC/ffmpeg_audio_$uid-log.txt && echo "$outputfile | " >> "$LOG_LOC/profile-video-$profile-conversions-log.txt" &&
-                # Copy completed file to media directory
-                mv "$d/$mp4fn-$profile.$p_fileext" "$outputfile"
-            fi
-        else
-            # Create location to store audio
-            mkdir -p "$media_dir/audio/live/$profile/$foldername"
-            $save_loc_a="$media_dir/audio/live/$profile/$foldername"
-            # Copy demuxed audio into the audio folder
-            if [ "$p_custom_string" == "" ]; then
-                /usr/local/bin/ffmpeg -y -i $filename -vn -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$save_loc_a/$mp4fn.aac"
-                /usr/local/bin/ffmpeg -y -i $filename $ffmpeg_string "$d/$mp4fn-$profile.$p_fileext" > /tmp/ffmpeg 2>$LOG_LOC/ffmpeg_audio_$uid-log.txt && echo "$outputfile | " >> "$LOG_LOC/profile-video-$profile-conversions-log.txt"  &&
-                mv "$d/$mp4fn-$profile.$p_fileext" "$outputfile"
-            else
-                /usr/local/bin/ffmpeg -y -i $filename -vn -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$media_dir/audio/live/$profile/$foldername/$mp4fn.aac"
-                eval /usr/local/bin/ffmpeg -y -i $filename -an $p_custom_string "$d/$mp4fn-$profile.$p_fileext" > /tmp/ffmpeg 2>$LOG_LOC/ffmpeg_audio_$uid-log.txt && echo "$outputfile | " >> "/$LOG_LOC/profile-video-$profile-conversions-log.txt" &&
-                mv "$d/$mp4fn-$profile.$p_fileext" "$outputfile"
-            fi
-        fi
-
-        inotifywait -qre close_write --format "%w%f" "$save_loc" | while read filename; do  
-            echo "Sandy: $outputfile has initiated conversion and has been logged."
-            # Copy out metadata
-            /usr/local/bin/ffmpeg -y -i "$filename" -f ffmetadata "$save_loc/$mp4fn-output-metadata.txt" 
-
-            # Copy out info
-            /usr/local/bin/ffprobe -show_format -show_streams "$filename" > "$save_loc/$mp4fn-output-info.txt"
-
-             if [ ! "$p_thumb_gen" == "0" ]; then
-                # Create preview image and dump converted file to the capture gallery folder
-                #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
-                mkdir -p "/vagrant/cap_gal/$foldername"
-                /vagrant/bistorm/xndir/thumbnail_generator "$filename" "$p_thumb_height" "$p_thumb_cols" "$p_thumb_rows" "/vagrant/cap_gal/$foldername/$mp4fn.jpg" >> $LOG_LOC/thumbnail-generator-log.txt &&
-                sudo cp "/vagrant/cap_gal/$foldername/$mp4fn.jpg" "$save_loc/$mp4fn.jpg" 
-            fi
-        done
-    done
 done

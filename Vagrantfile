@@ -1,11 +1,6 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# 
-# Jen: February 27, 2017 
-# #ProjectSandy has been released as a Vagrant VirtualBox Ubuntu 14.04 environment 
-# Sandy Box: 0.4.4
-# Sandy vCumulus 0.4.5
 #
 # From Scratch:
 # Prereq: Install Vagrant and VirtualBox on your Win/Lin/OSX machine
@@ -25,13 +20,6 @@ Vagrant.configure("2") do |config|
     config.vm.box = "bistorm/sandy"
     config.vm.box_url = "http://files.bistorm.us/sandy/metadata.json"
     config.vm.provision :shell, path: "./bistorm/storm", run: 'always'
-    config.vm.provision "bootstrap", type: "shell" do |s|
-        #s.inline = "/vagrant/bistorm/install_ffmpeg_latest" # Sandy Box 0.4.4 is provisioned with latest 
-        #s.inline = "/vagrant/bistorm/install_nginx_with_rtmp_latest" # Sandy Box 0.4.4 is provisioned with latest
-        s.inline = "/vagrant/bistorm/vcuum release dev >/dev/null"
-        s.inline = "/vagrant/bistorm/vcuum release stg-int >/dev/null"
-        s.inline = "/vagrant/bistorm/vcuum release stg-ext >/dev/null"
-     end
     config.vm.network "forwarded_port", guest: 9081, host:8081, auto_correct: false #RTMP/HLS/DASH
     config.vm.network "forwarded_port", guest: 9082, host:8082, auto_correct: false #SLUG
     config.vm.network "forwarded_port", guest: 9083, host:8083, auto_correct: false #MongoDB

@@ -5,6 +5,8 @@
 #  changes from just the host machine, this task is run through cron
 #
 
+exit
+
 video_dir="$1"
 
 if [ ! -d "$video_dir" ]; 

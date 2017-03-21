@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# Description: performs curl calls to the action services for the nginx-rtmp module
+#
+
+app=$1
+stream=$2
+client=$3
+
+source /usr/local/bin/bistorm/vars/sandy_ip >/dev/null
+
+if [ -z $app ] || [ -z $client ]; then
+    echo "Sandy: Please pass the app id and client id to drop."
+    echo "exit with error"
+    exit 1
+fi
+
+echo "Sandy: I have received a request to drop client $client from app $app."
+
+## Stop Action
+#    TODO: Discovery why we have to drop twice to get to 0
+curl http://$SANDY_IP/control/drop/client?app=$app&name=$stream&addr=$client
+curl http://$SANDY_IP/control/drop/client?app=hls$app&name=$stream&addr=$client
+curl http://$SANDY_IP/control/drop/client?app=dash$app&name=$stream&addr=$client
+
+echo "Sandy: My end has completed."
+exit

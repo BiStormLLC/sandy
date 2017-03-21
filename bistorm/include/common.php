@@ -137,6 +137,10 @@ class Common {
         return( array('hls' => $hls_streams, 'dash' => $dash_streams) );
     }
     
+    public function getActivePublishers() {
+        
+    }
+    
     public function getLiveStreamUrls() {
         $streams = $this->getOpenChannels();
         $urls = array();
@@ -160,6 +164,20 @@ class Common {
         }  
         return $urls;
     }
+    
+    ##
+    #
+    # Methods that require slug execution to set
+    #
+    ##
+    
+    # Is SLUG enabled for the attached environment?
+    public function isSlugEnabled() {
+        if ( is_object($this->vCumulus->slug) ) {
+            return true;
+        }
+        return false;
+    }
 
     # SLUG integration to determine if NGINX is currently serving HLS or DASH content
     public function isSandyStreaming() {
@@ -180,11 +198,57 @@ class Common {
         // TODO
     } 
     
-    # Is SLUG enabled for the attached environment?
-    public function isSlugEnabled() {
-        if ( is_object($this->vCumulus->slug) ) {
-            return true;
+    public function getIptvStats() {
+        if( ! $this->isSlugEnabled() || ! is_object($this->vCumulus->slug->log_view) ) {
+            return false;
         }
-        return false;
+        $this->vCumulus->slug->log_view->addActionArg( '1','stats' );
+        $this->vCumulus->slug->log_view->exec(false);
+        $response = $this->vCumulus->slug->log_view->slug_response;
+        if( ! is_object($response->slug->msg->SLUG) ) {
+            $server = $response->slug['msg']['SLUG']->server;
+        }
+        return $server;
     }
+    
+    public function getXndirProfiles($type='video') {
+        $profiles = array();
+        if( ! $this->isSlugEnabled() || ! is_object($this->vCumulus->slug->log_view) ) {
+            return false;
+        }
+        $this->vCumulus->slug->profiles->addActionArg( '1', $type );
+        $this->vCumulus->slug->profiles->exec(false);
+        $response = $this->vCumulus->slug->profiles->slug_response;
+        if( $response->slug['msg']['SLUG'] ) {
+            $profiles = $response->slug['msg']['SLUG'];
+        }
+        
+        return $profiles;
+    }
+
+    public function getClients($appid = 'c') {
+        if( ! $this->isSlugEnabled() ) {
+            return false;
+        }
+        $gathered_clients = array();
+
+        $stats = (array)$this->getIptvStats();
+        $apps = $stats['application'];
+        foreach($apps as $app) {
+           $app = (array)$app;
+           if ( ! is_string($app['name']) || ! is_object($app['live']) || ! is_object($app['live']->stream->client) ) {
+               continue;
+           }
+           if( $app['name'] == $appid || $app['name'] == 'hls' . $appid || $app['name'] == 'dash' . $appid ) {
+               $stream = $app['live']->stream->client;
+               foreach($stream as $client) {
+                    if( (string)$client->address != '127.0.0.1' ) {
+                        array_push( $gathered_clients, array('id'=>(string)$client->id, 'ip'=>(string)$client->address) );
+                    }
+                }
+           }
+        }
+        return $gathered_clients;
+    }
+    
 }

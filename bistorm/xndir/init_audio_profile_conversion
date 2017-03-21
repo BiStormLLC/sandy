@@ -5,6 +5,8 @@
 #  changes from just the host machine, this task is run through cron
 #
 
+exit
+
 audio_dir="$1"
 
 if [ ! -d "$audio_dir" ]; 

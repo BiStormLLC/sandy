@@ -178,13 +178,4 @@ class vCumulus {
         return $url;         
     }
     
-    # Calls back to Nginx-RTMP module to start and stop recording of streams
-    #  app=[c|d|z]
-    #  stream=[channel_id,stream_id]
-    #  rec=nginx.conf recorders
-    #  action=[start|stop]
-    public static function record($app, $stream, $rec, $action) {
-        $ip = shell_exec(". /vagrant/bistorm/stream/record " . $app . " " . $stream . " " . $rec . " " . $action);
-    }
-    
 }

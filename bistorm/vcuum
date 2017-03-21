@@ -14,6 +14,9 @@ force="$3"
 echo -e ".\n..\n...\n...."
 echo "Sandy: This is my vCumulus environment publisher tool."
 echo -e ".\n..\n...\n...."
+
+mkdir -p /vagrant/backup/vCumulus /vagrant/backup/vCumulus/$2
+
 if [ -z $1 ] || [ "$1" == "help" ]; then
     echo "Sandy: To publish vCumulus updates, the format is 'vcuum [[From Env]] [[To Env]]"
     echo "Sandy: Environments available are:"
@@ -39,8 +42,8 @@ the contents of '$1'.  Press (y) to continue or any other key to exit." key
         fi
     fi
 
-    echo -e "\n\nSandy: I am compressing a backup of /var/www/public/$2/react-app to /var/www/public/$2 ... "
-    tar -cvzf /var/www/public/$2/react-app_$(date +%b-%d-%y-%H-%M).tar.gz /var/www/public/$2/react-app 
+    echo -e "\n\nSandy: I am compressing a backup of /var/www/public/$2/react-app to /vagrant/backup/vCumulus/$2 ... "
+    tar -cvzf /vagrant/backup/vCumulus/$2/react-app_$(date +%b-%d-%y-%H-%M).tar.gz /var/www/public/$2/react-app 
 
     echo -e "\n\nSandy: I moving /var/www/public/$1/react-app to /var/www/public/$2/react-app ... "
     sudo rm -rf /var/www/public/$env2/react-app

@@ -1,4 +1,3 @@
-p_homerun_custom_q=""
 p_custom_string=""
 p_v_codec="h264"
 p_a_codec="aac"

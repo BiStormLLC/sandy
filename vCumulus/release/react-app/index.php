@@ -1,5 +1,7 @@
 <?php
     namespace BiStorm;
+    
+    error_reporting(E_ERROR);
 
     // 1. This is an alpha version
     // 2. Frustrations build character
@@ -28,7 +30,7 @@
         ),
         'set_flag' => array(
             'app_namespace' => 'vcumux',
-            'app_name' => 'stream',
+            'app_name' => 'flags',
             'action' => 'set_flag',
             'args' => array(),
         ),
@@ -49,6 +51,30 @@
             'app_name' => 'stream',
             'action' => 'record',
             'args' => array(),
+        ),
+        'log_view' => array(
+            'app_namespace' => 'vcumux',
+            'app_name' => 'log',
+            'action' => 'log_view',
+            'args' => array(),
+        ),
+        'profiles' => array(
+            'app_namespace' => 'vcumux',
+            'app_name' => 'stream',
+            'action' => 'list_profiles',
+            'args' => array(),
+        ),
+        'set_rec_profile' => array(
+            'app_namespace' => 'sandy',
+            'app_name' => 'xndir',
+            'action' => 'set_rec_profile_var',
+            'args' => array(),
+        ),
+        'send_to_vod' => array(
+            'app_namespace' => 'sandy',
+            'app_name' => 'xndir',
+            'action' => 'raw_mp4_to_vod',
+            'args' => array(),
         )
     );
     
@@ -59,9 +85,16 @@
     $env = $storm->getVCumEnvName();
     $storm->setVCumEnv($env, $storm->path); // $storm->vCumulus
     $storm->addSlugToEnv($storm->vCumulus, $slug_required_apps);
+
+    $storm->vCumulus->clients = $storm->getClients($storm->vCumulus->appId);
+    $storm->vCumulus->rec_profiles = $storm->getXnDirProfiles();
     
     $storm->vCumulus->active_streams = $storm->getLiveStreamUrls();
     $storm->vCumulus->open_channels = $storm->getOpenChannels();
+    
+    // Request the selected channel using SLUG server-side
+    $storm->vCumulus->slug->hdhr_channel->addActionArg('1', $storm->vCumulus->channel);
+    $storm->vCumulus->slug->hdhr_channel->exec(false);
     
     if( ! empty($storm->vCumulus->open_channels['hls']) ) {
         $active_conversion = $storm->vCumulus->open_channels['hls'][0];
@@ -87,7 +120,7 @@
         <meta name="description" content="Peer2Peer, Biz2Biz, Oh what a relief IT is.">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-icon.png" />
-        <link rel="stylesheet" href="../public/css/normalize.min.css" />
+        <link rel="stylesheet" href="../../public/css/normalize.min.css" />
         <script src="//content.jwplatform.com/libraries/LwXnbJyH.js"></script>
         <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
         <script type="text/javascript">
@@ -97,25 +130,42 @@
             var vcum = {"ux":<?php print $storm->vCumulus->getEnvAsJson() ?>};
             
             jQuery(document).ready(function () {
-                var slug = {
+            
+                vcum.ux.slug.interactions = {
                     'response': '',
                     'status': '',
                     'app_url': '',
                     'actions': {},
                     'buttons': [],
-                    'args': "",
-                    'load_app_url': function( app_url, args ) {
-                        if(typeof args != 'undefined' && typeof args[0] != 'undefined') {
-                            var arg_str = "?";
-                            var i = 1;
-                            for(arg in args) {
-                                arg_str += 'arg' + i + "=" + args[arg] + "&";
-                                i++;
+                    'load_app_url': function ( elm, args ) {
+                        this.current_app_elm = elm;
+                        var url_parts = jQuery(elm).attr('slug').split('__')[0].split('_');
+                        var action = jQuery(elm).attr('slug').split('__')[1];
+                        if ( typeof url_parts !== 'undefined' && typeof url_parts[1] !== 'undefined' ) {
+                            for (part in url_parts) {
+                                part = part.toLowerCase();
                             }
-                        } else {
-                            arg_str = "";
+                            if ( typeof args != 'undefined' && typeof args == 'string' ) {
+                               args = args.split(',');
+                            }
+                            var url = '/' + url_parts.join('/').toLowerCase() + '/action/' + action.toLowerCase();
+                            var name = jQuery(elm).attr('name');
+                            vcum.ux.slug.interactions.actions[name] = url;
+                            if( typeof args != 'undefined' && typeof args[0] != 'undefined') {
+                                qs = '?';
+                                for( var i=0; i < args.length; i++ ) {
+                                    if(i == 0) {
+                                        qs += 'arg' + (i+1) + '=' + args[i];
+                                    } else {
+                                        qs += '&arg' + (i+1) + '=' + args[i];
+                                    }   
+                                }
+                            } else {
+                                qs = '';
+                            }
+                            url += qs;
+                            this.app_url = url;
                         }
-                        this.app_url = app_url + arg_str;
                     },
                 
                     'call': function( callback ) {
@@ -126,92 +176,77 @@
                             'timeout': 3000,
                             'success': function(data, status, xhr) {
                                 if(typeof data.slug != 'undefined' && data.slug.msg != 'undefined') {
-                                    slug.response = data.slug.msg;
+                                    vcum.ux.slug.interactions.response = data.slug.msg;
                                 }
-                                if( typeof slug.response.error != "undefined") {
-                                    slug.status = '500';
-                                    slug.response = slug.app_url + " call failed with status " + slug.status + ": " + decodeURIComponent(slug.response.error).replace(/\+/g,' ');
-                                    if(console)console.log(slug.response);
-                                } else if (typeof slug.response.SLUG != "undefined") {
-                                    slug.status = '200';
-                                    slug.response = slug.app_url + " call succeeded with status " + slug.status + ": " + decodeURIComponent(slug.response.SLUG).replace(/\+/g, ' ');
-                                    if(console)console.log(slug.response);
+                                if( typeof vcum.ux.slug.interactions.response.error != "undefined") {
+                                    vcum.ux.slug.interactions.status = '500';
+                                    vcum.ux.slug.interactions.response = vcum.ux.slug.interactions.app_url + " call failed with status " + vcum.ux.slug.interactions.status + ": " + decodeURIComponent(vcum.ux.slug.interactions.response.error).replace(/\+/g,' ');
+                                    if(console)console.log(vcum.ux.slug.interactions.response);
+                                } else if (typeof vcum.ux.slug.interactions.response.SLUG != "undefined") {
+                                    vcum.ux.slug.interactions.status = '200';
+                                    vcum.ux.slug.interactions.response = vcum.ux.slug.interactions.app_url + " call succeeded with status " + vcum.ux.slug.interactions.status + ": " + decodeURIComponent(vcum.ux.slug.interactions.response.SLUG).replace(/\+/g, ' ');
+                                    if(console)console.log(vcum.ux.slug.interactions.response);
                                 }
-                                if (typeof callback == 'function') callback();
+                                if (typeof callback == 'function') callback(vcum.ux.slug.interactions.current_app_elm);
                             },
                             'error': function(xhr, status, e){
-                                slug.response = "SLUG call failed.";
-                                slug.status = "error";
+                                vcum.ux.slug.interactions.response = "SLUG call failed.";
+                                vcum.ux.slug.interactions.status = "error";
                             },
-                            timeout: 3000
+                            timeout: 5000
                         });
                     }  
                 };
                 
-                slug.buttons = jQuery("input[slug^='SLUG']");
-                jQuery(slug.buttons).each(function(){
-                    var url_parts = jQuery(this).attr('slug').split('__')[0].split('_');
-                    var action = jQuery(this).attr('slug').split('__')[1];
-                    if ( typeof url_parts !== 'undefined' && typeof url_parts[1] !== 'undefined' ) {
-                        for (part in url_parts) {
-                            part = part.toLowerCase();
-                        }
-                        var argsStr = jQuery(this).attr('args');
-                        if ( typeof argsStr != 'undefined' ) {
-                           args = argsStr.split(',');
-                        }
-                        var url = '/' + url_parts.join('/').toLowerCase() + '/action/' + action.toLowerCase();
-                        slug.actions[this.name] = url;
-                        if( typeof args != 'undefined' && typeof args[0] != 'undefined') {
-                            qs = '?';
-                            for( var i=0; i < args.length; i++ ) {
-                                if(i == 0) {
-                                    qs += 'arg' + (i+1) + '=' + args[i];
-                                } else {
-                                    qs += '&arg' + (i+1) + '=' + args[i];
-                                }   
-                            }
-                        } else {
-                            qs = '';
-                        }
-                        url += qs;
-                        if(console) console.log( 'SLUG attached to ' + this.name + ': ' + url);
-                        jQuery(this).unbind().on('click', function(){
-                            slug.load_app_url(url);
-                            slug.call();
-                        });
-                    }
+                // GENERIC CONTROL OF BUTTONS
+                jQuery("input[slug^='SLUG']").each(function() {
+                    vcum.ux.slug.interactions.buttons.push(this);        
+                });
+                jQuery(vcum.ux.slug.interactions.buttons).each(function(){
+                    jQuery(this).unbind().on('click', function(){
+                        vcum.ux.slug.interactions.load_app_url(this, jQuery(this).attr('args'));
+                        vcum.ux.slug.interactions.call();
+                    });
+                    if(console) console.log( 'SLUG attached to ' + jQuery(this).attr('name') + ': ' + jQuery(this).attr('slug'));
                 });
                 
                 // GENERIC CONTROL OF SELECTS
-                slug.selects = jQuery("select[slug^='SLUG']");
-                jQuery(slug.selects).each(function(){
+                vcum.ux.slug.interactions.selects = jQuery("select[slug^='SLUG']");
+                jQuery(vcum.ux.slug.interactions.selects).each(function(){
                     jQuery(this).unbind().change(function(){
-                        var option = jQuery("option:selected", this);
-                        var url = jQuery(this).attr('url');
-                        slug.load_app_url(url);
-                        slug.call();
+                        var option = jQuery("option:selected", $(this));
+                        var args_str = jQuery(option).attr('args');
+                        vcum.ux.slug.interactions.load_app_url(this, args_str);
+                        vcum.ux.slug.interactions.call();
                     });
+                    if(console) console.log( 'SLUG attached to ' + jQuery(this).attr('name') + ': ' + jQuery(this).attr('slug'));
                 });
                 
                 // Set the channel selector to the channel requested in the url
-                jQuery("select[name=SLUG_IOT_HDHR__channel]").val(vcum.ux.channel);
-
-                // Request the selected channel using SLUG
-                slug.load_app_url( vcum.ux.channelActivationUrl );
-                slug.call();  
-                
-                // CHANNEL SELECTION ACTIONS OVERRIDES GENERIC CONTROLS
-                jQuery("select[slug=SLUG_IOT_HDHR__channel]").unbind().on('click', 
-                    function() {
-                        slug.load_app_url("http://" + vcum.ux.server_name + "/slug" + vcum.ux.slug.hdhr_stop.path);
-                        slug.call();
-                        
+                for( var i=0; i < vcum.ux.channel_lineup.length; i++ ) {
+                    if ( vcum.ux.channel_lineup[i].GuideNumber == vcum.ux.channel) {
+                        jQuery("select[slug=SLUG_IOT_HDHR__channel]").prop('selectedIndex', i+1);
+                        break;
                     }
-                ).on('change', function(){
-                    var option = jQuery("option:selected", this);
-                    window.location = option.attr('url');
-                });
+                } 
+                
+                // CHANNEL SELECTION ACTIONS ADDS ONTO GENERIC ONCHANGE CONTROLS
+                jQuery("select[slug=SLUG_IOT_HDHR__channel]").unbind().on('change', 
+                    function(){
+                        channelSelect = jQuery("select[slug=SLUG_IOT_HDHR__channel]");
+                        var killswitch = jQuery("#slugAction #killSwitch");
+                        vcum.ux.slug.interactions.load_app_url(killswitch, '');
+                        vcum.ux.slug.interactions.call(function(elm){
+                            var option = jQuery("option:selected", channelSelect);
+                            var args_str = jQuery(option).attr('args');
+                            vcum.ux.slug.interactions.load_app_url(channelSelect, args_str);
+                            vcum.ux.slug.interactions.call(function(elm){
+                                var opt = jQuery("option:selected", elm);
+                                window.location = opt.attr('url');
+                            });
+                        });
+                    }
+                );
                 
                 // REC BUTTON ACTIONS
                 jQuery("input[name=Start]").on('click', 
@@ -228,9 +263,22 @@
                     }
                 );
                 
+                // CONVERT BUTTON IS ENABLED WHEN PROFILE IS NOT RAW
+                jQuery("select[name=Profile]").on('change', 
+                    function() {
+                        if(jQuery(this).val() == 'raw') {
+                            jQuery("input[name=Convert]").attr('disabled',true);
+                        } else {
+                            jQuery("input[name=Convert]").attr('disabled',false);
+                        }
+                    }
+                );
+                
                 if(console) {
+                    console.log('vcum :');
                     console.log(vcum);
-                    console.log(slug);
+                    console.log('slug interactions: ');
+                    console.log(vcum.ux.slug.interactions);
                 }
                 
             }); 
@@ -296,7 +344,7 @@
         </div>
         
         <div class="main navigation">
-            <form id="vcumulus-nav" name="navigation">
+            <form id="vcumulusNav" name="navigation">
                 <ul>
                     <?php
                         if( ! empty( $storm->vCumulus->active_streams) ) {
@@ -307,22 +355,34 @@
                            print "<li>Open <a target=\"_blank\" href='" . $storm->vCumulus->iptvUrl . "'>" . $storm->vCumulus->iptvUrl . "</a> for device casting.</li>";
                         }
                     ?>
+                    <li>Click! <a href="https://www.clickcabletv.com/guide/" target="_blank">Cable Guide</a> </li>
+                    <li>FFmpeg <a href="http://<?php print $storm->vCumulus->server_name ?>/slug/sandy/bistorm/action/ffmpeg_status" target="_blank">Status</a> </li>
                 </ul>
             </form>
         </div>
 
         <div class="vcum main interface">
-            <form id="slug-action" name="slug_actions">
+            <form id="slugAction" name="slug_actions">
                 <div class="vcum-col-3">
                     <ul class="">
                         <li>
                             <span>Record to X^nDir</span><br>
-                            <input class="vcum-btn rec start" type="button" value="Rec" args="<?php print 'start' . ',' . $storm->vCumulus->appId . ',' . $storm->vCumulus->channel?>" slug="SLUG_VCUMUX_STREAM__record" name="Start" />
                             <input class="vcum-btn rec stop" type="button" value="Stop" args="<?php print 'stop' . ',' . $storm->vCumulus->appId . ',' . $storm->vCumulus->channel?>" slug="SLUG_VCUMUX_STREAM__record" name="Stop"  disabled />
-                            <select class="vcum-sel" name="Profile">
-                                                                                
+                            <input class="vcum-btn rec start" type="button" value="Rec" args="<?php print 'start' . ',' . $storm->vCumulus->appId . ',' . $storm->vCumulus->channel?>" slug="SLUG_VCUMUX_STREAM__record" name="Start" />
+                            <input class="vcum-btn rec delete" type="button" value="New Recording" args="<?php print $storm->vCumulus->channel?>" slug="SLUG_SANDY_XNDIR__delete_temp_flv" name="Delete" />     
+                            </br><br>
+                            <span>Transcoding Profiles</span></br>
+                            <select class="vcum-sel" name="Profile" slug="SLUG_VCUMUX_STREAM__set_rec_profile_var">
+                                <option args="raw" url="<?php echo "http://" . $storm->vCumulus->server_name . "/slug/vcumux/stream/set_rec_profile_var?arg1=raw" ?>" label="raw" name="raw" value="raw">Raw MP4</option>
+                                <?php
+                                    foreach($storm->vCumulus->rec_profiles as $profile) {
+                                       $set_profile_url = "http://" . $storm->vCumulus->server_name . "/slug/vcumux/stream/set_rec_profile_var";
+                                       echo "<option args=\"" . $profile . "\" url=\"" . $set_profile_url . "\" label=\"" . $profile . "\" name=\"" . $profile . "\" value=\"" . $profile . "\">" . $profile . "</option>";
+                                    }       
+                                ?>                                          
                             </select>
-                        </li>
+                            <!-- //Unhide to manually force X^nDir to recognize recording profiles: <input disabled id="convert" class="vcum-btn rec convert" type="button" value="Convert" args="" slug="SLUG_SANDY_XNDIR__raw_mp4_to_vod" name="Convert" />  --> 
+                            </li>
                         <li>
                             <span>Change to Channel...</span><br>
                             <select class="vcum-sel channel" slug="SLUG_IOT_HDHR__channel" name="Channel">
@@ -330,13 +390,21 @@
                                 <?php
                                     foreach ( $storm->vCumulus->channel_lineup as $channel ) {
                                         $iptvUrl = "http://" . $storm::getSandyTvIp() . "/c/" . $channel->GuideNumber;
-                                        echo "<option label=\"" . $channel->GuideNumber . ' > ' . $channel->GuideName . "\" name=\"" . $channel->GuideNumber . "\" url=\"" . $iptvUrl . "\" action=\"" . $channel->URL . "\" value=\"" . $channel->GuideNumber . "\">" . $channel->GuideNumber . "</option>";
+                                        echo "<option args=\"" . $channel->GuideNumber . "\" name=\"" . $channel->GuideNumber . "\" url=\"" . $iptvUrl . "\" action=\"" . $channel->URL . "\" value=\"" . $channel->GuideNumber . "\">" . $channel->GuideNumber . ' > ' . $channel->GuideName . "</option>";
                                     }
                                 ?>
                             </select>
                         </li>
                         <li><span>Ask Sandy to</span><br>
-                            <input class="vcum-btn killswitch" type="button" value="Kill All Feeds" slug="SLUG_IOT_HDHR__stop" name="KillSwitch"></li>
+                            <div>
+                                <?php
+                                    foreach($storm->vCumulus->clients as $client) {
+                                        echo "<input class=\"vcum-btn killswitch\" args=\"" . $storm->vCumulus->appId . "," . $storm->vCumulus->channel . "," . $client['ip'] . "\" type=\"button\" value=\"Drop " . $client['ip'] . "\" slug=\"SLUG_VCUMUX_STREAM__drop_client\" name=\"DropClient\"/><br>";
+                                    }
+                                ?>
+                                <input class="vcum-btn killswitch" type="button" value="Kill All Feeds" args="" slug="SLUG_IOT_HDHR__stop" name="KillSwitch" id="killSwitch"/>
+                            </div>
+                       </li>
                     </ul>
                 </div>
             </form>
@@ -355,39 +423,43 @@
         </div>
 
         <script>
-            loadPlayer = function( playlist ) {
-                if ( typeof playlist == 'undefined') {
-                    playlist = [{
-                        sources: [
-                            {   
-                                'label': 'iptv',
-                                'file': "<?php print $storm->vCumulus->iptvUrl ?>"
-                            },
-                            {
-                                'label': 'dash',
-                                'file': "<?php print $storm->vCumulus->dashUrl ?>"
-
-                            },
-                            {
-                                'label': 'flash',
-                                'file': "<?php print $storm->vCumulus->rtmpUrl ?>"
-                            }
-                        ]
-                    }]
-                } 
-                player = jwplayer("stream");
-                player.setup({
-                    "image": "http://blog.bistorm.org/wp-content/uploads/2016/08/cropped-bistorm_background.jpg",
-                    "abouttext": "BiStorm vCumulus and #ProjectSandy support are provided on Twitter through @babelfeed",
-                    "aboutlink": "http://blog.bistorm.org",
-                    "playlist": playlist,
-                    "width": "100%",
-                    "mute": true,
-                    "preload": "metadata"
-                });
-            }();
             jQuery(document).ready(function() {
-                vcum.ux.player = player;
+                loadPlayer = function( playlist ) {
+                    if ( typeof playlist == 'undefined') {
+                        playlist = [{
+                            sources: [
+                                {   
+                                    'label': 'iptv',
+                                    'file': "<?php print $storm->vCumulus->iptvUrl ?>"
+                                },
+                                {
+                                    'label': 'dash',
+                                    'file': "<?php print $storm->vCumulus->dashUrl ?>"
+
+                                },
+                                {
+                                    'label': 'flash',
+                                    'file': "<?php print $storm->vCumulus->rtmpUrl ?>"
+                                }
+                            ]
+                        }]
+                    } 
+                    var player = jwplayer("stream");
+                    player.setup({
+                        "image": "http://blog.bistorm.org/wp-content/uploads/2016/08/cropped-bistorm_background.jpg",
+                        "abouttext": "BiStorm vCumulus and #ProjectSandy support are provided on Twitter through @babelfeed",
+                        "aboutlink": "http://blog.bistorm.org",
+                        "playlist": playlist,
+                        "width": "100%",
+                        "mute": true
+                    });
+                    vcum.ux.player = player;
+                }();
+                var t;
+                var timer=3000;
+                vcum.ux.player.onIdle(function() {
+                    t=setTimeout("vcum.ux.player.play()",timer);
+                });
             })
         </script>
 

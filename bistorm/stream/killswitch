@@ -25,10 +25,11 @@ else
     echo "Sandy: My ffmpeg processes have been halted."
 fi
 
+sudo rm /usr/local/bin/bistorm/stream/dash_streams /usr/local/bin/bistorm/stream/hls_streams
+
 # Drop active IPTV connections
-echo "Sandy: I am disconnecting publishers and players..."
-curl -i http://192.168.1.124/control/drop/client >/dev/null
-curl -i http://192.168.1.124/control/drop/publisher >/dev/null
+echo "Sandy: I am disconnecting clients ..."
+curl -i http://localhost/control/drop/client >/dev/null
 
 #Iterate through all directories passed in
 for var in "$@"
@@ -39,6 +40,20 @@ do
     find $var -name "*.m3u8" -type f -delete
     find $var -name "*.mp4" -type f -delete
 done
+
+cd /var/www/hls/c
+sudo rm -rf ./*
+cd ../d
+sudo rm -rf ./*
+cd ../z
+sudo rm -rf ./*
+
+cd /var/www/dash/c
+sudo rm -rf ./*
+cd ../d
+sudo rm -rf ./*
+cd ../z
+sudo rm -rf ./*
 
 if [ "${warning}" -eq 0 ]; then
     echo "Sandy: I am no longer streaming an HLS feed."

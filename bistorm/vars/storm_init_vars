@@ -27,16 +27,20 @@ if [ ! -z "$export_ip" ] && [ ! "$export_ip" == "" ]; then
 fi
 
 # Set the log file directory
-if [ ! -d "/var/www/logs" ]; then
-    sudo mkdir -p "/var/www/logs" "/var/www/logs/access"
-    sudo chown vagrant:www-data /var/www/logs /var/www/logs/access
+if [ ! -d "/var/www/log" ] && [ ! -d "/var/www/log/access" ]; then
+    sudo mkdir -p "/var/www/log" "/var/www/log/access"
+    sudo chown vagrant:www-data /var/www/log /var/www/log/access
 fi
 export_content="LOGLOC=\"/usr/local/bin/bistorm/logs\""
-export_footer='export LOG_LOC=$LOGLOC; echo "Sandy: ENV ##LOG_LOC## is set. Your logs are rotated whenever storm is run: @$LOG_LOC"'
+export_footer='export LOG_LOC=$LOGLOC; echo "Sandy: ENV ##LOG_LOC## is set. Your logs are rotated by running /usr/local/bin/bistorm/rotate_logs: @$LOG_LOC"'
 echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars/log_loc
 
+# Set the X^nDir Recording Profile to default 'raw'
+export_content="RECPROFILE=\"raw\""
+export_footer='export REC_PROFILE=$RECPROFILE; echo "Sandy: ENV ##REC_PROFILE## is set. Path to the working directory is /vagrant/xndir/video/$REC_PROFILE. My vCumulus UX ENV is set to: @$REC_PROFILE"'
+echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars/rec_profile
 
 # Create environment variable for vCumulus virtual directory path
 export_content="VCUMEN=\"$env\""
-export_footer='export VCUM_ENV=$VCUMEN; echo "Sandy: ENV ##VCUMEN## is set. Path to the working directory is /var/www/public/$VCUM_ENV. My vCumulus UX ENV is set to @$VCUM_ENV"'
+export_footer='export VCUM_ENV=$VCUMEN; echo "Sandy: ENV ##VCUM_ENV## is set. Path to the working directory is /var/www/public/$VCUM_ENV. My vCumulus UX ENV is set to: @$VCUM_ENV"'
 echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars/vcum_env

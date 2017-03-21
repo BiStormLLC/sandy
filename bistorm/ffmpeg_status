@@ -1,4 +1,28 @@
 #!/bin/bash 
 # Queue manager for ffmpeg
-count=`ps aux | grep -v "grep" | grep -c ffmpeg`
-echo $count
+ffmpeg=`ps aux | grep -v 'ffmpeg_status' | grep -v 'ffmpeg_queue' | grep '[f]fmpeg' `
+IFS='?' read -a procs <<< "${ffmpeg}"
+pos=$(( ${#procs[*]} - 1 ))
+last=${procs[$pos]}
+
+output="["
+for proc in "${procs[@]}"; do  
+    proc_trim="$(echo -e "${proc}" | sed -e 's/^ *//g;s/ *$//g' )"
+    proc_trim=sed -e "s/\n/''/g" $proc_trim
+
+    if [ $i % 2 == 0 ]; then      
+        output="$output\"${proc_trim}\"}"
+    else
+        output="$output\"${proc_trim}\""
+    fi
+    
+    if [[ $proc == $last ]]; then
+       output="$output"
+       break
+    else 
+       output="$output,"
+    fi
+
+done
+output="$output]"
+echo $output

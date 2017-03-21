@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# Description: Return the encapsulated json value of a log in /var/www/log/access
+
+type=$1
+if [ ! -z $type ]; then
+    if [ "$type" == "clients" ]; then
+        clients=$(less "/var/www/log/access/clients.json")
+        clients=$(echo "$clients" | tr -d '\n')
+        echo "[$clients'']"
+        exit
+    fi
+    if [ "$type" == "publishers" ]; then
+        publishers=$(less "/var/www/log/access/publishers.json")
+        publishers=$(echo "$publishers" | tr -d '\n')
+        echo "[$publishers'']"
+        exit
+    fi
+    if [ "$type" == "clear" ]; then
+        cd /var/www/log/access
+        sudo rm clients.json publishers.json
+        echo "[]"
+        exit
+    fi
+    if [ "$type" == "stats" ]; then
+        xml=$(curl http://localhost:9081/stat)
+        echo $xml
+        exit
+    fi
+fi
+
+echo "[" && less "/var/www/log/access/nginx_iptv.json" && echo "{}]"

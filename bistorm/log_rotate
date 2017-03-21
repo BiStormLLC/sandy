@@ -8,7 +8,7 @@ if [ ! -d $LOG_LOC ]; then
     echo "Sandy: Log location was not found."
 fi
 
-if [ ! -d "/var/www/logs" ]; then
+if [ ! -d "/var/www/log" ]; then
     echo "Sandy: Log location was not found."
 fi
 
@@ -25,7 +25,7 @@ tar -cvzf /vagrant/backup/bistorm_$(date +%b-%d-%y-%H-%M).tar.gz $LOG_LOC &>/dev
 if [ -f "/var/run/nginx.pid" ]; then
     kill -USR1 `cat /var/run/nginx.pid`
     cd /var/www/logs/access
-    for f in ./*
+    for f in ./*.json
     do
       mv ./$f ./$f.old 
     done

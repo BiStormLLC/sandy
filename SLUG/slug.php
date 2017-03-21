@@ -2,7 +2,8 @@
 namespace BiStorm;
 namespace BiStorm\SLUG;
 
-error_reporting(E_ERROR | E_WARNING | E_PARSE);
+error_reporting(E_ERROR);
+libxml_use_internal_errors(true);
 
 /*
  * Note from SecOps: Do not modify the .htaccess permissions to slug.json 
@@ -30,10 +31,13 @@ error_reporting(E_ERROR | E_WARNING | E_PARSE);
  * 
  */
 class Slug {
+    protected $exec_type = 'bash';
+    
     public function __construct($namespace = "bistorm", $app_init = array(), $response_yn = false){
         ## Properties
         $this->response_yn = $response_yn;
         $this->json_root = $namespace;
+        $this->args = array();
         $this->sh_root = "";
         $this->slug_response = "";
         $this->slug_root = "";
@@ -77,13 +81,16 @@ class Slug {
         if ( ! empty($app_init) ) {
             $this->path_sectors = array();
             try{
-                $this->path_sectors = array('', $app_init['app_namespace'], $app_init['app_name'], 'action', $app_init['action']);
+                $this->path_sectors = array('slug', $app_init['app_namespace'], $app_init['app_name'], 'action', $app_init['action']);
             } catch (Exception $ex) {
                 throw new Exception("SLUG __METHOD__: app_init was passed in, but Slug could not contstruct an executable path.");
             }
+
             if( ! empty($app_init['args']) ) {
+                $i = 0;
                 foreach ( $app_init['args'] as $arg ) {
-                    array_push($_GET, $arg);
+                    $i++;
+                    $this->addActionArg($i, $arg);
                 }
             }
             $this->path = implode('/', $this->path_sectors);
@@ -175,7 +182,11 @@ class Slug {
         
     }
     
-    public function exec($response = true, $status = '200') {
+    public function exec($response = true, $status = '200', $exec_type = '') {
+        
+        if( $exec_type == '' ) {
+            $exec_type = $this->exec_type;
+        }
 
         // Output early errors, typically 404, from __construct method
         if( ($this->response_yn || $response) && $this->slug_response != "") {
@@ -190,14 +201,42 @@ class Slug {
         $args_str = implode(" ", $args);
 
         $script = $this->slug_app_exec_dir . "/" . $this->action->name;
+        
+        $exec_resp = shell_exec( $exec_type . ' ' . $script . ' ' .  $args_str );
 
-        $exec_resp = shell_exec( 'bash ' . $script . ' ' .  $args_str );
+        # If we receive a json format back from the script, we can include this within the msg body as more json
+        try {
+            $json_capable = json_decode($exec_resp);
+            if( $json_capable !== NULL ) {
+                $exec_resp = $json_capable;
+            } else {
+                $exec_resp = trim($exec_resp);
+            }  
+        } catch (Exception $ex) {
+
+        }
+           
+        # If we receive an xml body from the script, attempt to convert it to 
+        #  an object and then print set json
+        try {
+            if( $json_capable == NULL) {
+                $xml_capable = simplexml_load_string($exec_resp);
+                if( $xml_capable !== FALSE ) {
+                    $exec_resp = $xml_capable;
+                } else {
+                    $exec_resp = trim($exec_resp);
+                }
+            }
+        } catch (Exception $ex) {
+
+        }
+
 
         // Failure block
         if ( $this->action->log !== "false" ) {
             if ( $exec_resp == NULL ) {
                 if ($this->action->msg->failure == "@sandy") {
-                    $this->slug_response = (object)array('slug' => array('msg' => array('error' => "\"" . trim(urlencode($exec_resp)) . "\"")));
+                    $this->slug_response = (object)array('slug' => array('msg' => array('error' => "\"" . $exec_resp . "\"")));
                 } else {
                     $this->slug_response = (object)array('slug' => array('msg' => array('error' => "\"" . trim($this->action->msg->failure) . "\"")));
                 }
@@ -225,9 +264,9 @@ class Slug {
         // Success block
         if ( $this->action->log !== "false" ) {
             if ( $this->action->msg->success == "@sandy" ) {
-                $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => trim(urlencode($exec_resp)))));
+                $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => $exec_resp)));
             } else {
-                $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => trim(urlencode($this->action->msg->success)))));
+                $this->slug_response = (object)array('slug' => array('msg' => array('SLUG' => trim($this->action->msg->success))));
             }
         } else {
             if ( $this->action->msg->success == "@sandy" ) {
@@ -288,13 +327,14 @@ class Slug {
         if( empty($this->args) ) {
             $this->args = $_GET;
         }
+
         foreach( $this->args as $arg => $val ) {
             if( strpos( $arg, "arg" ) !== FALSE ) {
                 $arg = trim($arg);
                 $arg = urlencode($arg); 
                 array_push( $args, $val );
             }
-        }
+        }        
         return $args;
     }
     
@@ -459,10 +499,8 @@ class Slug {
     /**
      * ACTIONS
      */    
-    public function addActionArg($arg) {
-        $arg = trim($arg);
-        $arg = urlencode($arg); 
-        array_push( $this->args, $val );
+    public function addActionArg($i=0, $value) {
+        $this->args['arg' . $i] = $value;
     }
 }
 
