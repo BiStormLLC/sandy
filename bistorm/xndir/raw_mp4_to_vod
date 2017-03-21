@@ -152,13 +152,13 @@ do
     if [ "$p_demux" == "0" ]; then
         # Convert file in working/profile directory
         if [ "$p_custom_string" == "" ]; then 
-            /usr/local/bin/ffmpeg -y -i ${filename} ${ffmpeg_string} ${profile_temp_loc} > "$LOG_LOC/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
+            /usr/local/bin/ffmpeg -y -i ${filename} ${ffmpeg_string} ${profile_temp_loc} &> "$LOG_LOC/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
             # Copy completed file to media directory
             mv "${profile_temp_loc}" "${outputfile}" &&
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
             cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
         else
-            /usr/local/bin/ffmpeg -y -i ${filename} ${p_custom_string} ${profile_temp_loc} > ${LOG_LOC}/raw_mp4_to_vod_ffmpeg-log.txt && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
+            /usr/local/bin/ffmpeg -y -i ${filename} ${p_custom_string} ${profile_temp_loc} &> "${LOG_LOC}/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
             # Copy completed file to media directory
             mv "${profile_temp_loc}" "${outputfile}" && 
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&

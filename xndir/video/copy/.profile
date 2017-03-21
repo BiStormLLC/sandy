@@ -1,0 +1,7 @@
+p_custom_string=" -codec copy"
+p_format="mp4"
+p_fileext="mp4"
+p_thumb_gen="1"
+p_thumb_height="250"
+p_thumb_rows="1"
+p_thumb_cols="30"

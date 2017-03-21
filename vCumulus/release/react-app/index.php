@@ -263,17 +263,6 @@
                     }
                 );
                 
-                // CONVERT BUTTON IS ENABLED WHEN PROFILE IS NOT RAW
-                jQuery("select[name=Profile]").on('change', 
-                    function() {
-                        if(jQuery(this).val() == 'raw') {
-                            jQuery("input[name=Convert]").attr('disabled',true);
-                        } else {
-                            jQuery("input[name=Convert]").attr('disabled',false);
-                        }
-                    }
-                );
-                
                 if(console) {
                     console.log('vcum :');
                     console.log(vcum);
@@ -349,7 +338,9 @@
                     <?php
                         if( ! empty( $storm->vCumulus->active_streams) ) {
                            foreach( $storm->vCumulus->active_streams as $stream_url ) {
-                                print "<li>Open <a target=\"_blank\" href='" . $stream_url . "'>" . $stream_url . "</a> for device casting.</li>";
+                                if( strpos($stream_url, "/iptv/") !== FALSE) {
+                                     print "<li>Open <a target=\"_blank\" href='" . $stream_url . "'>" . $stream_url . "</a> for device casting.</li>";
+                                }
                            }
                         } else {
                            print "<li>Open <a target=\"_blank\" href='" . $storm->vCumulus->iptvUrl . "'>" . $storm->vCumulus->iptvUrl . "</a> for device casting.</li>";
@@ -373,7 +364,7 @@
                             </br><br>
                             <span>Transcoding Profiles</span></br>
                             <select class="vcum-sel" name="Profile" slug="SLUG_VCUMUX_STREAM__set_rec_profile_var">
-                                <option args="raw" url="<?php echo "http://" . $storm->vCumulus->server_name . "/slug/vcumux/stream/set_rec_profile_var?arg1=raw" ?>" label="raw" name="raw" value="raw">Raw MP4</option>
+                                <option args="raw" url="<?php echo "http://" . $storm->vCumulus->server_name . "/slug/vcumux/stream/set_rec_profile_var?arg1=copy" ?>" label="save to temp" name="raw" value="raw">Save to Temp</option>
                                 <?php
                                     foreach($storm->vCumulus->rec_profiles as $profile) {
                                        $set_profile_url = "http://" . $storm->vCumulus->server_name . "/slug/vcumux/stream/set_rec_profile_var";

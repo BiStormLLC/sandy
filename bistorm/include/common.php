@@ -158,7 +158,7 @@ class Common {
                 if( $stream == "" ) {
                     continue;
                 }
-                $stream_url = 'http://' . $this->getSandyTvIp() . '/iptv/' . $stream . '/index.mpd';
+                $stream_url = 'http://' . $this->getSandyTvIp() . '/dash/' . $stream . '/index.mpd';
                 array_push($urls, $stream_url);
             }
         }  
