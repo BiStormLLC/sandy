@@ -5,9 +5,8 @@
 #  changes from just the host machine, this task is run through cron
 #
 
-exit
-
 video_dir="$1"
+media_dir="/var/www/vod"
 
 if [ ! -d "$video_dir" ]; 
     then
@@ -16,7 +15,7 @@ if [ ! -d "$video_dir" ];
      exit 1
 fi
 
-source /vagrant/bistorm/vars/log_loc
+source /vagrant/bistorm/vars/log_loc >/dev/null
 
 rawurlencode() {
   local string="${1}"
@@ -54,8 +53,8 @@ for d in $video_dir/*; do
             continue
         fi
 
-        if [[ ${f_lower: -4} == ".mp4" ]] || [[ ${f_lower: -4} == ".flv" ]] || [[ ${f_lower: -4} == ".mpeg" ]] || \
-            [[ ${f_lower: -4} == ".mp4" ]] || [[ ${f_lower: -4} == ".mkv" ]] || [[ ${f_lower: -4} == ".avi" ]] || \
+        if [[ ${f_lower: -4} == ".mp4" ]] || [[ ${f_lower: -4} == ".flv" ]] || [[ ${f_lower: -5} == ".mpeg" ]] || \
+            [[ ${f_lower: -4} == ".mp5" ]] || [[ ${f_lower: -4} == ".mov" ]] || [[ ${f_lower: -4} == ".mkv" ]] || [[ ${f_lower: -4} == ".avi" ]] || \
             [[ ${f_lower: -4} == ".mts" ]] || [[ ${f_lower: -4} == ".m4v" ]] || [[ ${f_lower: -4} == ".mp5" ]] || [[ ${f_lower: -3} == ".ts" ]]; then
             acc_files+=("$filename")
         fi
@@ -103,18 +102,18 @@ for d in $video_dir/*; do
         p_filter=""
         p_crf="18"
         p_preset="ultrafast"
-        p_maxrate="2500k"
-        p_bufsize="5000k"
+        p_maxrate="1000k"
+        p_bufsize="1500k"
         p_a_bitrate="192k"
         p_g="60"
-        p_v_profile="baseline"
+        p_tune="fastdecode"
         p_format="mp4"
         p_fileext="mp4"
         # NOT REQUIRED : set p_thumb_gen to "0" in .profile to ignore thumbnail generation
         p_thumb_gen="1"
         p_thumb_height="250"
         p_thumb_rows="1"
-        p_thumb_cols="100"
+        p_thumb_cols="30"
 
         echo "Sandy: I am encoding the file $latest_file_base to $d/$original_fn-$uid.$p_fileext ... "
 
@@ -126,9 +125,16 @@ for d in $video_dir/*; do
             echo "Sandy: No .profile file was found for $d, so I'm using my defaults."
         fi
 
-        outputfilename="$original_fn-$uid.$p_fileext"
+        # File folder organizer
+        foldername=$(date +"%Y/%m/%d")
+
+        output_prefix="${original_fn}-${uid}"
+        outputfilename="${output_prefix}.$p_fileext"
         outputfileurl=`rawurlencode "$outputfilename"`
         outputfile="$d/$outputfileurl"
+        save_loc="${media_dir}/video/${foldername}/$output_prefix"
+
+        sudo mkdir -p "${save_loc}" "${save_loc}/meta" "${save_loc}/thumbs"
 
         # Including empty filter will break ffmpeg conversion,
         #  So, we include a rescaler to the entire argument or none at all
@@ -151,22 +157,34 @@ for d in $video_dir/*; do
         fi
 
         # Copy metadata 
-        /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" -f ffmetadata "$d/$latest_file_base-input-$uid-metadata.txt"
+        /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" -f ffmetadata "${save_loc}/meta/${output_prefix}-input-metadata.txt" &
 
         # Copy show info
-        /usr/local/bin/ffprobe -show_format -show_streams "$video_dir/$latest_file_base" > "$d/$latest_file_base-input-$uid-info.txt"
+        /usr/local/bin/ffprobe -show_format -show_streams "$video_dir/$latest_file_base" > "${save_loc}/meta/${output_prefix}-input-info.txt"
 
         ## Concatenated string of all of our profile settings
-        ffmpeg_string=" -vcodec $p_v_codec -tune $p_tune -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -crf $p_crf$p_v_profile$p_preset-maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"  
+        ffmpeg_string=" -vcodec $p_v_codec -tune $p_tune -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -crf $p_crf$p_v_profile$p_preset -maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"      
+    
+        if [ "$p_custom_string" == "" ]; then
+            echo $ffmpeg_string > $LOG_LOC/ffmpeg_out_string.txt
+        else
+            echo $p_custom_string > $LOG_LOC/ffmpeg_out_string.txt
+        fi
 
         ffmpeg_queue > /dev/null
 
         if [ -z "$p_demux+x" ] || [ "$p_demux" == "0" ]; then
             # Convert file in working/profile directory
             if [ "$p_custom_string" == "" ]; then
-                /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" "$ffmpeg_string" "$outputfile" > /tmp/ffmpeg 2>$LOG_LOC/ffmpeg_video_$uid-log.txt
+                /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" ${ffmpeg_string} ${outputfile} >/tmp/ffmpeg 2>$LOG_LOC/init_video_profile_conversion_ffmpeg-log.txt && 
+                mv "${outputfile}" "${save_loc}/${outputfileurl}" && 
+                /usr/local/bin/bistorm/xndir/thumbnail_generator ${save_loc}/${outputfileurl} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
+                cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
             else
-                eval /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" "$p_custom_string" "$outputfile" > /tmp/ffmpeg 2>/tmp/ffmpeg 2>$LOG_LOC/ffmpeg_video_$uid-log.txt
+                eval /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" ${ffmpeg_string} ${outputfile} >/tmp/ffmpeg 2>$LOG_LOC/init_video_profile_conversion_ffmpeg-log.txt &&
+                mv "${outputfile}" "${save_loc}/${outputfileurl}" && 
+                /usr/local/bin/bistorm/xndir/thumbnail_generator ${save_loc}/${outputfileurl} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
+                cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
             fi   
         else 
             # Create demuxed directories in working directory
@@ -174,27 +192,17 @@ for d in $video_dir/*; do
             # Copy into the audio and video folders
             if [ "$p_custom_string" == "" ]; then 
                 /usr/local/bin/ffmpeg -y -vn -i "$video_dir/$latest_file_base" -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$d/audio/$original_fn-$uid.aac" 
-                /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" $ffmpeg_string "$output_file" > /tmp/ffmpeg 2>/tmp/ffmpeg 2>$LOG_LOC/ffmpeg_video_$uid-log.txt
+                /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" ${ffmpeg_string} ${outputfile} >/tmp/ffmpeg 2>$LOG_LOC/init_video_profile_conversion_ffmpeg-log.txt &&
+                mv "${outputfile}" "${save_loc}/${outputfileurl}" && 
+                /usr/local/bin/bistorm/xndir/thumbnail_generator ${save_loc}/${outputfileurl} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
+                cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
             else  
                 /usr/local/bin/ffmpeg -y -vn -i "$video_dir/$latest_file_base" -acodec "$p_a_codec" -b:a "$p_a_bitrate" "$d/audio/$original_fn-$uid.aac" 
-                eval /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" -an $p_custom_string "$outputfile" > /tmp/ffmpeg 2>$LOG_LOC/ffmpeg_video_$uid-log.txt
+                eval /usr/local/bin/ffmpeg -y -i "$video_dir/$latest_file_base" -an ${p_custom_string} ${outputfile} >/tmp/ffmpeg 2>$LOG_LOC/init_video_profile_conversion_ffmpeg-log.txt && 
+                mv "${outputfile}" "${save_loc}/${outputfileurl}" && 
+                /usr/local/bin/bistorm/xndir/thumbnail_generator ${save_loc}/${outputfileurl} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
+                cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
             fi
-        fi
-
-        if [ -f "$outputfile" ]; then
-
-            if [ ! "$p_thumb_gen" == "0" ]; then
-                # Create preview image and dump converted file to the capture gallery folder
-                #   thumbnail generator args: VIDEO [HEIGHT=120] [COLS=100] [ROWS=1] [OUTPUT]
-                mkdir -p "/vagrant/cap_gal/$foldername"
-                /vagrant/bistorm/xndir/thumbnail_generator "$outputfile" "$p_thumb_height" "$p_thumb_cols" "$p_thumb_rows" "/vagrant/cap_gal/$foldername/$original_fn.jpg" >> $LOG_LOC/thumbnail_generator-log.txt
-                cp "/vagrant/cap_gal/$foldername/$original_fn-$uid.jpg" "$d/"
-            fi
-
-            # Log the profile conversion activity
-            echo -e "Sandy: $outputfile has initiated conversion and has been logged.\n" 
-            echo -e "$outputfile\n" >> "$LOG_LOC/profile-video-$uid-conversions-log.txt"
-
         fi
     done
 done

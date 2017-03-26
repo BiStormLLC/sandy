@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+# Description: Copies hls directory to stream.bistorm.us
+#
+
+#!/bin/bash
+HOST='bistorm.org'
+USER='bistormo'
+
+source /usr/local/bin/bistorm/vars/log_loc >/dev/null
+
+sudo chown -R vagrant:vagrant /var/www/hls /var/www/dash
+sudo chmod -R 755 /var/www/hls /var/www/dash
+
+ssh $USER@$HOST 'rm -rf public_html/stream/iptv/* public_html/stream/dash/*; mkdir -p public_html/stream/iptv public_html/stream/dash;'
+rsync -zar --update --progress /var/www/hls/* $USER@$HOST:public_html/stream/iptv/ 
+rsync -zar --update --progress /var/www/dash/* $USER@$HOST:public_html/stream/dash/ 
+
+exit 0

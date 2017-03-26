@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+# Description: Executes scripts on reboot of Sandy Server
+#
+sudo nginx

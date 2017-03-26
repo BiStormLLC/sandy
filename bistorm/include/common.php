@@ -75,7 +75,7 @@ class Common {
     public static function getSandyTvIp() {
         $env = self::getVCumEnvName();
         if( trim($env) == "stg-ext" ) {
-            return "sandy1.bistorm.us";
+            return "stream.bistorm.us";
         } else {
             $ip = shell_exec(". /vagrant/bistorm/vars/sandy_ip");
             $ip = substr($ip, strpos($ip, "@") + 1);

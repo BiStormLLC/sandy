@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# Description: Executes scripts every 1 min
+#
+/usr/local/bin/bistorm/xndir/init_video_profile_conversion /vagrant/xndir/video
+/usr/local/bin/bistorm/xndir/init_audio_profile_conversion /vagrant/xndir/audio

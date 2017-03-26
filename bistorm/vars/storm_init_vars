@@ -37,7 +37,7 @@ echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars
 
 # Set the X^nDir Recording Profile to default 'raw'
 export_content="RECPROFILE=\"copy\""
-export_footer='export REC_PROFILE=$RECPROFILE; echo "Sandy: ENV ##REC_PROFILE## is set. Path to the working directory is /vagrant/xndir/video/$REC_PROFILE. My vCumulus UX ENV is set to: @$REC_PROFILE"'
+export_footer='export REC_PROFILE=$RECPROFILE; echo "Sandy: ENV ##REC_PROFILE## is set. Path to the working directory is /vagrant/xndir/video/$REC_PROFILE. Recording Profile is set to: @$REC_PROFILE"'
 echo -e "$export_head\n$export_content\n$export_footer;" > /vagrant/bistorm/vars/rec_profile
 
 # Create environment variable for vCumulus virtual directory path

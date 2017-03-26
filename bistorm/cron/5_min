@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+# Description: Executes scripts every 5 minutes
+#
+bash /usr/local/bin/bistorm/stream/stream_to_server > /usr/local/bin/bistorm/logs/stream_to_server-log.txt

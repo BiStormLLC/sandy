@@ -1,0 +1,7 @@
+#!/bin/bash
+#
+# Description: Executes scripts every 1 min
+#
+/usr/local/bin/bistorm/xndir/init_video_profile_conversion /vagrant/xndir/video > /usr/local/bin/bistorm/logs/cron_init_video_profile_conversion-log.txt
+/usr/local/bin/bistorm/xndir/init_audio_profile_conversion /vagrant/xndir/audio > /usr/local/bin/bistorm/logs/cron_init_audio_profile_conversion-log.txt
+#/usr/local/bin/bistorm/stream/stream_to_server > /usr/local/bin/bistorm/logs/stream_to_server-log.txt

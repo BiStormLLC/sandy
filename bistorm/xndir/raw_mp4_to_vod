@@ -51,8 +51,8 @@ do
 
     # Generate filename before .mp4
     mp4fn_time=$(echo $latest_stream_base | cut -f 1 -d '.')
-    stringcreated=$(echo $mp4fn_time | cut -f 2 -d '_')
-    mp4fn=$(echo $latest_stream_base | cut -f 1 -d '_')
+    stringcreated=$(echo $mp4fn_time | cut -f 2 -d '-')
+    mp4fn=$(echo $latest_stream_base | cut -f 1 -d '-')
     echo -e "raw_mp4_to_vod :: Pre-conversion values: mp4fn_time: $mp4fn_time, stringcreated: $stringcreated, mp4fn: $mp4fn" > $LOG_LOC/raw_mp4_to_vod_preconversion.txt
 
     # Ensure that the file contains a valid timestamp
@@ -143,7 +143,7 @@ do
     /usr/local/bin/ffprobe -show_format -show_streams $filename > "${save_loc}/meta/${output_prefix}-input-info.txt"
 
     ## Concatenated string of all of our profile settings
-    ffmpeg_string=" -vcodec $p_v_codec -tune $p_tune -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -crf $p_crf$p_v_profile$p_preset-maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"      
+    ffmpeg_string=" -vcodec $p_v_codec -tune $p_tune -acodec $p_a_codec -b:a $p_a_bitrate -vf $p_filter -crf $p_crf$p_v_profile$p_preset -maxrate $p_maxrate -bufsize $p_bufsize -g $p_g -f $p_format"      
     ffmpeg_queue > /dev/null
     if [ "$p_custom_string" == "" ]; then
         echo $ffmpeg_string > $LOG_LOC/ffmpeg_out_string.txt
@@ -162,7 +162,7 @@ do
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
             cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
         else
-            /usr/local/bin/ffmpeg -y -i ${filename} ${p_custom_string} ${profile_temp_loc} &> "$LOG_LOC/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
+            eval /usr/local/bin/ffmpeg -y -i ${filename} ${p_custom_string} ${profile_temp_loc} &> "$LOG_LOC/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
             # Copy completed file to media directory
             mv "${profile_temp_loc}" "${outputfile}" && 
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
@@ -180,7 +180,7 @@ do
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
             cp ${save_loc}/thumbs/${output_prefix}.jpg /var/www/public/capture-gallery/${output_prefix}.jpg
         else
-            /usr/local/bin/ffmpeg -y -i $filename -vn -acodec $p_a_codec -b:a $p_a_bitrate "$save_loc_a/${output_prefix}.aac" 
+            eval /usr/local/bin/ffmpeg -y -i $filename -vn -acodec $p_a_codec -b:a $p_a_bitrate "$save_loc_a/${output_prefix}.aac" 
             /usr/local/bin/ffmpeg -y -i $filename -an ${p_custom_string} ${profile_temp_loc} &> "$LOG_LOC/raw_mp4_to_vod_ffmpeg-log.txt" && echo "$outputfile | " >> "$LOG_LOC/profile-$profile-conversions-log.txt" &&
             mv "${profile_temp_loc}" "${outputfile}" && 
             /usr/local/bin/bistorm/xndir/thumbnail_generator ${outputfile} ${p_thumb_height} ${p_thumb_cols} ${p_thumb_rows} ${save_loc}/thumbs/${output_prefix}.jpg >> "$LOG_LOC/thumbnail-generator-log.txt" &&
